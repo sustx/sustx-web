@@ -39,9 +39,8 @@ nav {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #ff2d78;
+  color: var(--text);
   text-decoration: none;
-  text-shadow: 0 0 18px rgba(255, 45, 120, 0.65), 0 0 40px rgba(255, 45, 120, 0.3);
 }
 
 .nav-back {
@@ -57,6 +56,24 @@ nav {
 }
 .nav-back:hover { color: var(--text); }
 .nav-back svg { width: 16px; height: 16px; }
+
+/* ── ARTIST PROFILE HERO ── */
+.artist-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.artist-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.12);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  display: block;
+}
 
 /* ── HERO (index) ── */
 .hero {

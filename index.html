@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sustancia 'X'</title>
+  <title>Artist</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -12,13 +12,16 @@
 <body>
 
   <nav>
-    <a href="index.html" class="nav-logo">Sustancia 'X'</a>
+    <a href="index.html" class="nav-logo" id="nav-logo"></a>
   </nav>
 
   <main>
     <section class="hero">
-      <p class="hero-label fade-up fade-up-1">Music</p>
-      <h1 class="hero-title fade-up fade-up-2">Discography</h1>
+      <div class="artist-profile fade-up fade-up-1">
+        <img class="artist-avatar" id="artist-avatar" alt="Artist" />
+        <h1 class="hero-title" id="hero-artist-name"></h1>
+        <p class="hero-label">Discography</p>
+      </div>
     </section>
 
     <section class="grid-section">
@@ -34,6 +37,18 @@
   <script src="data.js"></script>
   <script>
     document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    // Populate artist info from data.js
+    document.title = artist.name;
+    document.getElementById('nav-logo').textContent = artist.name;
+    document.getElementById('hero-artist-name').textContent = artist.name;
+    const avatarEl = document.getElementById('artist-avatar');
+    if (artist.avatar) {
+      avatarEl.src = artist.avatar;
+      avatarEl.alt = artist.name;
+    } else {
+      avatarEl.style.display = 'none';
+    }
 
     const grid = document.getElementById('songs-grid');
 

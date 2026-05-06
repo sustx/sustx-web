@@ -1,3 +1,8 @@
+const artist = {
+  name: "Sustancia 'X'",
+  avatar: "assets/profile.jpg",
+};
+
 const songs = [
   {
     id: "ella-me-vio",

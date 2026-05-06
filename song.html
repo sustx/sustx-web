@@ -18,7 +18,7 @@
       </svg>
       All releases
     </a>
-    <a href="index.html" class="nav-logo">Sustancia 'X"</a>
+    <a href="index.html" class="nav-logo" id="nav-logo"></a>
   </nav>
 
   <main class="song-page" id="song-page">
@@ -39,6 +39,9 @@
 
   <script src="data.js"></script>
   <script>
+    // Artist name in nav (always)
+    document.getElementById('nav-logo').textContent = artist.name;
+
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
     const song = songs.find(s => s.id === id);
@@ -47,7 +50,7 @@
       document.title = 'Not Found';
       document.getElementById('song-title').textContent = 'Song not found';
     } else {
-      document.title = song.title;
+      document.title = `${song.title} — ${artist.name}`;
 
       // Album art
       const artEl = document.getElementById('album-art');
