@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loading…</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+      All releases
+    </a>
+    <a href="index.html" class="nav-logo">Artist</a>
+  </nav>
+
+  <main class="song-page" id="song-page">
+    <!-- Background blur layer -->
+    <div class="song-bg-blur" id="bg-blur"></div>
+
+    <div class="song-content">
+      <div class="song-album-art fade-up fade-up-1" id="album-art">
+        <div class="placeholder-art">🎵</div>
+      </div>
+
+      <h1 class="song-title fade-up fade-up-2" id="song-title">—</h1>
+      <p class="song-subtitle fade-up fade-up-3" id="song-subtitle"></p>
+
+      <div class="stream-buttons fade-up fade-up-4" id="stream-buttons"></div>
+    </div>
+  </main>
+
+  <script src="data.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    const song = songs.find(s => s.id === id);
+
+    if (!song) {
+      document.title = 'Not Found';
+      document.getElementById('song-title').textContent = 'Song not found';
+    } else {
+      document.title = song.title;
+
+      // Album art
+      const artEl = document.getElementById('album-art');
+      if (song.art) {
+        artEl.innerHTML = `<img src="${song.art}" alt="${song.title}" onerror="this.parentElement.innerHTML='<div class=\\'placeholder-art\\'>🎵</div>'" />`;
+      }
+
+      // Background blur
+      const bgBlur = document.getElementById('bg-blur');
+      if (song.art) {
+        bgBlur.innerHTML = `<img src="${song.art}" alt="" aria-hidden="true" />`;
+      } else {
+        bgBlur.style.background = `radial-gradient(ellipse at center, ${song.color || '#7c3aed'}33 0%, transparent 70%)`;
+      }
+
+      // Glow color on album art shadow
+      if (song.color) {
+        artEl.style.boxShadow = `0 30px 80px rgba(0,0,0,0.6), 0 0 60px ${song.color}33, 0 0 0 1px rgba(255,255,255,0.06)`;
+      }
+
+      document.getElementById('song-title').textContent = song.title;
+      document.getElementById('song-subtitle').textContent = song.subtitle || '';
+
+      // Stream buttons
+      const btns = document.getElementById('stream-buttons');
+
+      const platforms = [
+        {
+          key: 'spotify',
+          label: 'Listen on Spotify',
+          cls: 'btn-spotify',
+          icon: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.494 17.308a.748.748 0 01-1.029.249c-2.818-1.723-6.365-2.112-10.541-1.157a.748.748 0 01-.332-1.46c4.571-1.044 8.492-.595 11.655 1.339a.748.748 0 01.247 1.029zm1.466-3.26a.936.936 0 01-1.287.308c-3.225-1.982-8.141-2.556-11.956-1.399a.936.936 0 11-.543-1.791c4.358-1.323 9.776-.682 13.478 1.595a.936.936 0 01.308 1.287zm.126-3.395C15.53 8.398 9.4 8.192 5.97 9.246a1.123 1.123 0 11-.652-2.149c3.944-1.197 10.501-.965 14.641 1.768a1.123 1.123 0 01-1.374 1.788z"/></svg>`,
+        },
+        {
+          key: 'apple',
+          label: 'Listen on Apple Music',
+          cls: 'btn-apple',
+          icon: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.994 6.124a9.23 9.23 0 00-.24-2.19c-.317-1.31-1.062-2.31-2.18-3.043a5.022 5.022 0 00-1.877-.726 10.496 10.496 0 00-1.564-.15c-.04-.003-.083-.01-.124-.013H5.986c-.152.01-.303.017-.455.026C4.786.07 4.043.15 3.34.428 2.004.958 1.04 1.88.475 3.208a5.1 5.1 0 00-.39 1.548c-.06.54-.077 1.085-.083 1.63-.004.176 0 .352 0 .528v12.172c0 .164-.003.327.008.49.06 1.14.327 2.19 1.01 3.09.842 1.096 1.956 1.705 3.32 1.89.48.065.964.084 1.448.085 3.254.003 6.509.002 9.763.001.337 0 .674-.013 1.01-.04 1.103-.09 2.08-.45 2.86-1.2.808-.78 1.26-1.75 1.42-2.86.07-.5.088-1.008.09-1.515.005-3.667.003-7.334.003-11zM15.5 7.5a3 3 0 10-3-3 3 3 0 003 3zM9 17a3 3 0 100-6 3 3 0 000 6zm6-7a1 1 0 10-1-1 1 1 0 001 1zm0 4a1 1 0 101-1 1 1 0 00-1 1z"/></svg>`,
+        },
+        {
+          key: 'youtube',
+          label: 'Watch on YouTube',
+          cls: 'btn-youtube',
+          icon: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>`,
+        },
+      ];
+
+      platforms.forEach(p => {
+        const url = song.links?.[p.key];
+        if (!url) return;
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.className = `stream-btn ${p.cls}`;
+        a.innerHTML = `${p.icon}<span>${p.label}</span>`;
+        btns.appendChild(a);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Artist</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-logo">Artist</a>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <p class="hero-label fade-up fade-up-1">Music</p>
+      <h1 class="hero-title fade-up fade-up-2">Discography</h1>
+    </section>
+
+    <section class="grid-section">
+      <p class="grid-heading fade-up fade-up-3">All Releases</p>
+      <div class="songs-grid" id="songs-grid"></div>
+    </section>
+  </main>
+
+  <footer>
+    <span id="footer-year"></span> · All rights reserved
+  </footer>
+
+  <script src="data.js"></script>
+  <script>
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    const grid = document.getElementById('songs-grid');
+
+    songs.forEach((song, i) => {
+      const delay = 0.1 + i * 0.08;
+      const artContent = song.art
+        ? `<img src="${song.art}" alt="${song.title}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'placeholder-art\\'>🎵</div>'" />`
+        : `<div class="placeholder-art">🎵</div>`;
+
+      const card = document.createElement('a');
+      card.href = `song.html?id=${song.id}`;
+      card.className = 'song-card fade-up';
+      card.style.animationDelay = `${delay}s`;
+      card.style.setProperty('--glow', song.color || '#7c3aed');
+      card.innerHTML = `
+        <div class="card-art">
+          ${artContent}
+          <div class="card-play-icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-info">
+          <p class="card-title">${song.title}</p>
+          <p class="card-subtitle">${song.subtitle || ''}</p>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  </script>
+</body>
+</html>
