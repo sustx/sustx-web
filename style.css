@@ -81,7 +81,6 @@ nav {
   align-items: center;
   justify-content: space-between;
   padding: calc(20px + env(safe-area-inset-top)) calc(32px + env(safe-area-inset-right)) 20px calc(32px + env(safe-area-inset-left));
-  background: linear-gradient(to bottom, rgba(8,8,8,0.95) 60%, transparent);
 }
 
 .nav-logo {
