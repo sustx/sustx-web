@@ -77,9 +77,16 @@
 
     songs.forEach((song, i) => {
       const delay = 0.1 + i * 0.08;
-      const artContent = song.art
-        ? `<img src="${song.art}" alt="${song.title}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'placeholder-art\\'>🎵</div>'" />`
-        : `<div class="placeholder-art">🎵</div>`;
+      const artContent = buildResponsivePictureHTML(
+        song.artSources,
+        song.title,
+        '(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px',
+        {
+          loading: 'lazy',
+          decoding: 'async',
+          onerror: "this.closest('.card-art').innerHTML='<div class=\\'placeholder-art\\'>🎵</div>'",
+        },
+      );
 
       const card = document.createElement('a');
       card.href = `song.html?id=${song.id}`;

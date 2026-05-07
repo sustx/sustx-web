@@ -30,7 +30,7 @@
           const preload = document.createElement('link');
           preload.rel = 'preload';
           preload.as = 'image';
-          preload.href = preview.art;
+          preload.href = preview.artSources?.preload || preview.art;
           document.head.appendChild(preload);
         }
       } catch (error) {
@@ -83,6 +83,33 @@
         return;
       }
 
+      function buildPreviewPictureHTML(artSources, alt, sizes, options = {}) {
+        if (!artSources) {
+          return `<div class="placeholder-art">🎵</div>`;
+        }
+
+        const {
+          loading = '',
+          decoding = 'async',
+          fetchPriority = '',
+          onerror = '',
+          ariaHidden = false,
+        } = options;
+
+        const loadingAttr = loading ? ` loading="${loading}"` : '';
+        const decodingAttr = decoding ? ` decoding="${decoding}"` : '';
+        const fetchPriorityAttr = fetchPriority ? ` fetchpriority="${fetchPriority}"` : '';
+        const onerrorAttr = onerror ? ` onerror="${onerror}"` : '';
+        const ariaHiddenAttr = ariaHidden ? ` aria-hidden="true"` : '';
+
+        return `
+          <picture>
+            <source type="image/webp" srcset="${artSources.webpSrcSet}" sizes="${sizes}" />
+            <img src="${artSources.fallback}" srcset="${artSources.jpgSrcSet}" sizes="${sizes}" alt="${alt}"${loadingAttr}${decodingAttr}${fetchPriorityAttr}${ariaHiddenAttr}${onerrorAttr} />
+          </picture>
+        `;
+      }
+
       const artEl = document.getElementById('album-art');
       const bgBlur = document.getElementById('bg-blur');
       const titleEl = document.getElementById('song-title');
@@ -94,8 +121,25 @@
       subtitleEl.textContent = preview.subtitle || '';
 
       if (preview.art) {
-        artEl.innerHTML = `<img src="${preview.art}" alt="${preview.title}" fetchpriority="high" decoding="async" onerror="this.parentElement.innerHTML='<div class=\\'placeholder-art\\'>🎵</div>'" />`;
-        bgBlur.innerHTML = `<img src="${preview.art}" alt="" aria-hidden="true" decoding="async" />`;
+        artEl.innerHTML = buildPreviewPictureHTML(
+          preview.artSources,
+          preview.title,
+          '(max-width: 600px) 75vw, 240px',
+          {
+            decoding: 'async',
+            fetchPriority: 'high',
+            onerror: "this.closest('.song-album-art').innerHTML='<div class=\\'placeholder-art\\'>🎵</div>'",
+          },
+        );
+        bgBlur.innerHTML = buildPreviewPictureHTML(
+          preview.artSources,
+          '',
+          '100vw',
+          {
+            decoding: 'async',
+            ariaHidden: true,
+          },
+        );
       } else {
         artEl.innerHTML = `<div class="placeholder-art">🎵</div>`;
         bgBlur.style.background = `radial-gradient(ellipse at center, ${preview.color || '#7c3aed'}33 0%, transparent 70%)`;
@@ -130,8 +174,25 @@
       const btns = document.getElementById('stream-buttons');
 
       if (song.art) {
-        artEl.innerHTML = `<img src="${song.art}" alt="${song.title}" fetchpriority="high" decoding="async" onerror="this.parentElement.innerHTML='<div class=\\'placeholder-art\\'>🎵</div>'" />`;
-        bgBlur.innerHTML = `<img src="${song.art}" alt="" aria-hidden="true" decoding="async" />`;
+        artEl.innerHTML = buildResponsivePictureHTML(
+          song.artSources,
+          song.title,
+          '(max-width: 600px) 75vw, 240px',
+          {
+            decoding: 'async',
+            fetchPriority: 'high',
+            onerror: "this.closest('.song-album-art').innerHTML='<div class=\\'placeholder-art\\'>🎵</div>'",
+          },
+        );
+        bgBlur.innerHTML = buildResponsivePictureHTML(
+          song.artSources,
+          '',
+          '100vw',
+          {
+            decoding: 'async',
+            ariaHidden: true,
+          },
+        );
       } else {
         artEl.innerHTML = `<div class="placeholder-art">🎵</div>`;
         bgBlur.innerHTML = '';

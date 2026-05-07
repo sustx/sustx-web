@@ -3,6 +3,62 @@ const artist = {
   avatar: "assets/profile.jpg",
 };
 
+function buildArtSources(path) {
+  if (!path) {
+    return null;
+  }
+
+  const match = path.match(/^(.*)\.(jpe?g|png)$/i);
+  if (!match) {
+    return {
+      fallback: path,
+      jpgSrcSet: path,
+      webpSrcSet: "",
+      preload: path,
+    };
+  }
+
+  const [, base, extension] = match;
+  const normalizedExtension = extension.toLowerCase() === "jpeg" ? "jpg" : extension.toLowerCase();
+  const fallback = `${base}.${normalizedExtension}`;
+
+  return {
+    fallback,
+    jpgSrcSet: `${base}-320.${normalizedExtension} 320w, ${fallback} 640w`,
+    webpSrcSet: `${base}-320.webp 320w, ${base}.webp 640w`,
+    preload: `${base}.webp`,
+  };
+}
+
+function buildResponsivePictureHTML(artSources, alt, sizes, options = {}) {
+  if (!artSources) {
+    return `<div class="placeholder-art">🎵</div>`;
+  }
+
+  const {
+    className = "",
+    loading = "lazy",
+    decoding = "async",
+    fetchPriority = "",
+    onerror = "",
+    ariaHidden = false,
+  } = options;
+
+  const classAttr = className ? ` class="${className}"` : "";
+  const loadingAttr = loading ? ` loading="${loading}"` : "";
+  const decodingAttr = decoding ? ` decoding="${decoding}"` : "";
+  const fetchPriorityAttr = fetchPriority ? ` fetchpriority="${fetchPriority}"` : "";
+  const onerrorAttr = onerror ? ` onerror="${onerror}"` : "";
+  const ariaHiddenAttr = ariaHidden ? ` aria-hidden="true"` : "";
+
+  return `
+    <picture>
+      <source type="image/webp" srcset="${artSources.webpSrcSet}" sizes="${sizes}" />
+      <img src="${artSources.fallback}" srcset="${artSources.jpgSrcSet}" sizes="${sizes}" alt="${alt}"${classAttr}${loadingAttr}${decodingAttr}${fetchPriorityAttr}${ariaHiddenAttr}${onerrorAttr} />
+    </picture>
+  `;
+}
+
 const songs = [
   {
     id: "ella-me-vio",
@@ -89,3 +145,7 @@ const songs = [
     },
   },
 ];
+
+songs.forEach(song => {
+  song.artSources = buildArtSources(song.art);
+});
