@@ -6,6 +6,7 @@
   <title>Artist</title>
   <link rel="icon" href="assets/favicon.jpg" type="image/jpeg" />
   <link rel="preload" href="fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="prefetch" href="song.html" as="document" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -48,6 +49,31 @@
     }
 
     const grid = document.getElementById('songs-grid');
+    const prefetchedSongs = new Set(['song.html']);
+
+    function prefetchSongPage(songId) {
+      const href = `song.html?id=${songId}`;
+      if (prefetchedSongs.has(href)) {
+        return;
+      }
+
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.as = 'document';
+      link.href = href;
+      document.head.appendChild(link);
+      prefetchedSongs.add(href);
+    }
+
+    function rememberSelectedSong(song) {
+      sessionStorage.setItem(
+        'selected-song',
+        JSON.stringify({
+          ...song,
+          artistName: artist.name,
+        }),
+      );
+    }
 
     songs.forEach((song, i) => {
       const delay = 0.1 + i * 0.08;
@@ -69,6 +95,27 @@
           <p class="card-subtitle">${song.subtitle || ''}</p>
         </div>
       `;
+
+      const warmSongPage = () => prefetchSongPage(song.id);
+      card.addEventListener('pointerenter', warmSongPage, { once: true });
+      card.addEventListener('focus', warmSongPage, { once: true });
+      card.addEventListener('touchstart', warmSongPage, { once: true, passive: true });
+
+      card.addEventListener('click', event => {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          return;
+        }
+
+        event.preventDefault();
+        rememberSelectedSong(song);
+        prefetchSongPage(song.id);
+        card.classList.add('song-card-activating');
+        document.body.classList.add('page-transitioning');
+        window.setTimeout(() => {
+          window.location.href = card.href;
+        }, 140);
+      });
+
       grid.appendChild(card);
     });
   </script>

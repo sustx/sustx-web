@@ -8,6 +8,37 @@
   <link rel="preload" href="fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="style.css" />
   <style>html, body { overflow: hidden; height: 100dvh; }</style>
+  <script>
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      const rawPreview = sessionStorage.getItem('selected-song');
+
+      if (!rawPreview) {
+        return;
+      }
+
+      try {
+        const preview = JSON.parse(rawPreview);
+        if (!preview || preview.id !== id) {
+          return;
+        }
+
+        window.__songPreview = preview;
+
+        if (preview.art) {
+          const preload = document.createElement('link');
+          preload.rel = 'preload';
+          preload.as = 'image';
+          preload.href = preview.art;
+          document.head.appendChild(preload);
+        }
+      } catch (error) {
+        console.warn('Ignoring invalid song preview cache.', error);
+        sessionStorage.removeItem('selected-song');
+      }
+    })();
+  </script>
 </head>
 <body>
 
@@ -25,57 +56,95 @@
     <!-- Background blur layer -->
     <div class="song-bg-blur" id="bg-blur"></div>
 
-    <div class="song-content">
+    <div class="song-content is-loading" id="song-content">
       <div class="song-album-art fade-up fade-up-1" id="album-art">
-        <div class="placeholder-art">🎵</div>
+        <div class="song-art-skeleton ghost-shimmer" aria-hidden="true"></div>
       </div>
 
-      <h1 class="song-title fade-up fade-up-2" id="song-title">—</h1>
-      <p class="song-subtitle fade-up fade-up-3" id="song-subtitle"></p>
+      <h1 class="song-title fade-up fade-up-2" id="song-title">
+        <span class="song-line-skeleton ghost-shimmer" aria-hidden="true"></span>
+      </h1>
+      <p class="song-subtitle fade-up fade-up-3" id="song-subtitle">
+        <span class="song-subtitle-skeleton ghost-shimmer" aria-hidden="true"></span>
+      </p>
 
-      <div class="stream-buttons fade-up fade-up-4" id="stream-buttons"></div>
+      <div class="stream-buttons fade-up fade-up-4" id="stream-buttons">
+        <div class="stream-btn stream-btn-skeleton ghost-shimmer" aria-hidden="true"></div>
+        <div class="stream-btn stream-btn-skeleton ghost-shimmer" aria-hidden="true"></div>
+        <div class="stream-btn stream-btn-skeleton ghost-shimmer" aria-hidden="true"></div>
+      </div>
     </div>
   </main>
 
-  <script src="data.js"></script>
   <script>
-    // Artist name in nav (always)
-    document.getElementById('nav-logo').textContent = artist.name;
-
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('id');
-    const song = songs.find(s => s.id === id);
-
-    if (!song) {
-      document.title = 'Not Found';
-      document.getElementById('song-title').textContent = 'Song not found';
-    } else {
-      document.title = `${song.title} — ${artist.name}`;
-
-      // Album art
-      const artEl = document.getElementById('album-art');
-      if (song.art) {
-        artEl.innerHTML = `<img src="${song.art}" alt="${song.title}" onerror="this.parentElement.innerHTML='<div class=\\'placeholder-art\\'>🎵</div>'" />`;
+    (() => {
+      const preview = window.__songPreview;
+      if (!preview) {
+        return;
       }
 
-      // Background blur
+      const artEl = document.getElementById('album-art');
       const bgBlur = document.getElementById('bg-blur');
-      if (song.art) {
-        bgBlur.innerHTML = `<img src="${song.art}" alt="" aria-hidden="true" />`;
+      const titleEl = document.getElementById('song-title');
+      const subtitleEl = document.getElementById('song-subtitle');
+      const btnsEl = document.getElementById('stream-buttons');
+
+      document.title = `${preview.title} — ${preview.artistName || 'Artist'}`;
+      titleEl.textContent = preview.title;
+      subtitleEl.textContent = preview.subtitle || '';
+
+      if (preview.art) {
+        artEl.innerHTML = `<img src="${preview.art}" alt="${preview.title}" fetchpriority="high" decoding="async" onerror="this.parentElement.innerHTML='<div class=\\'placeholder-art\\'>🎵</div>'" />`;
+        bgBlur.innerHTML = `<img src="${preview.art}" alt="" aria-hidden="true" decoding="async" />`;
       } else {
+        artEl.innerHTML = `<div class="placeholder-art">🎵</div>`;
+        bgBlur.style.background = `radial-gradient(ellipse at center, ${preview.color || '#7c3aed'}33 0%, transparent 70%)`;
+      }
+
+      if (preview.color) {
+        artEl.style.boxShadow = `0 30px 80px rgba(0,0,0,0.6), 0 0 60px ${preview.color}33, 0 0 0 1px rgba(255,255,255,0.06)`;
+      }
+
+      btnsEl.innerHTML = `
+        <div class="stream-btn stream-btn-skeleton ghost-shimmer" aria-hidden="true"></div>
+        <div class="stream-btn stream-btn-skeleton ghost-shimmer" aria-hidden="true"></div>
+        <div class="stream-btn stream-btn-skeleton ghost-shimmer" aria-hidden="true"></div>
+      `;
+    })();
+  </script>
+
+  <script src="data.js"></script>
+  <script>
+    const navLogo = document.getElementById('nav-logo');
+    const contentEl = document.getElementById('song-content');
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+
+    function renderSong(song, artistName) {
+      document.title = `${song.title} — ${artistName}`;
+
+      const artEl = document.getElementById('album-art');
+      const bgBlur = document.getElementById('bg-blur');
+      const titleEl = document.getElementById('song-title');
+      const subtitleEl = document.getElementById('song-subtitle');
+      const btns = document.getElementById('stream-buttons');
+
+      if (song.art) {
+        artEl.innerHTML = `<img src="${song.art}" alt="${song.title}" fetchpriority="high" decoding="async" onerror="this.parentElement.innerHTML='<div class=\\'placeholder-art\\'>🎵</div>'" />`;
+        bgBlur.innerHTML = `<img src="${song.art}" alt="" aria-hidden="true" decoding="async" />`;
+      } else {
+        artEl.innerHTML = `<div class="placeholder-art">🎵</div>`;
+        bgBlur.innerHTML = '';
         bgBlur.style.background = `radial-gradient(ellipse at center, ${song.color || '#7c3aed'}33 0%, transparent 70%)`;
       }
 
-      // Glow color on album art shadow
       if (song.color) {
         artEl.style.boxShadow = `0 30px 80px rgba(0,0,0,0.6), 0 0 60px ${song.color}33, 0 0 0 1px rgba(255,255,255,0.06)`;
       }
 
-      document.getElementById('song-title').textContent = song.title;
-      document.getElementById('song-subtitle').textContent = song.subtitle || '';
-
-      // Stream buttons
-      const btns = document.getElementById('stream-buttons');
+      titleEl.textContent = song.title;
+      subtitleEl.textContent = song.subtitle || '';
+      btns.innerHTML = '';
 
       const platforms = [
         {
@@ -98,17 +167,41 @@
         },
       ];
 
-      platforms.forEach(p => {
-        const url = song.links?.[p.key];
-        if (!url) return;
-        const a = document.createElement('a');
-        a.href = url;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.className = `stream-btn ${p.cls}`;
-        a.innerHTML = `${p.icon}<span>${p.label}</span>`;
-        btns.appendChild(a);
+      platforms.forEach(platform => {
+        const url = song.links?.[platform.key];
+        if (!url) {
+          return;
+        }
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.className = `stream-btn ${platform.cls}`;
+        link.innerHTML = `${platform.icon}<span>${platform.label}</span>`;
+        btns.appendChild(link);
       });
+
+      contentEl.classList.remove('is-loading');
+    }
+
+    navLogo.textContent = artist.name;
+
+    const preview = window.__songPreview;
+    if (preview && preview.id === id) {
+      renderSong(preview, preview.artistName || artist.name);
+    }
+
+    const song = songs.find(s => s.id === id);
+
+    if (!song) {
+      document.title = 'Not Found';
+      document.getElementById('song-title').textContent = 'Song not found';
+      document.getElementById('song-subtitle').textContent = '';
+      document.getElementById('stream-buttons').innerHTML = '';
+      contentEl.classList.remove('is-loading');
+    } else {
+      renderSong(song, artist.name);
     }
   </script>
 </body>
