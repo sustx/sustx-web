@@ -51,6 +51,17 @@
     const grid = document.getElementById('songs-grid');
     const prefetchedSongs = new Set(['song.html']);
 
+    function resetTransitionState() {
+      document.body.classList.remove('page-transitioning');
+      document.querySelectorAll('.song-card-activating').forEach(card => {
+        card.classList.remove('song-card-activating');
+      });
+    }
+
+    resetTransitionState();
+    window.addEventListener('pageshow', resetTransitionState);
+    window.addEventListener('pagehide', resetTransitionState);
+
     function prefetchSongPage(songId) {
       const href = `song.html?id=${songId}`;
       if (prefetchedSongs.has(href)) {
