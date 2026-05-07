@@ -321,6 +321,7 @@ nav {
   gap: 12px;
   padding: 16px 24px;
   border-radius: 100px;
+  overflow: hidden;
   width: 100%;
   font-size: 0.9rem;
   font-weight: 600;
@@ -330,6 +331,8 @@ nav {
   transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition);
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
 }
 
 .stream-btn:active {
