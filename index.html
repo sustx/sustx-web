@@ -19,13 +19,11 @@
     <section class="hero">
       <div class="artist-profile fade-up fade-up-1">
         <img class="artist-avatar" id="artist-avatar" alt="Artist" />
-        <h1 class="hero-title" id="hero-artist-name"></h1>
-        <p class="hero-label">Discography</p>
       </div>
     </section>
 
     <section class="grid-section">
-      <p class="grid-heading fade-up fade-up-3">All Releases</p>
+      <p class="grid-heading fade-up fade-up-2">Discography &middot; All Releases</p>
       <div class="songs-grid" id="songs-grid"></div>
     </section>
   </main>
@@ -41,7 +39,6 @@
     // Populate artist info from data.js
     document.title = artist.name;
     document.getElementById('nav-logo').textContent = artist.name;
-    document.getElementById('hero-artist-name').textContent = artist.name;
     const avatarEl = document.getElementById('artist-avatar');
     if (artist.avatar) {
       avatarEl.src = artist.avatar;
