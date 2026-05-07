@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Artist</title>
   <link rel="icon" href="assets/favicon.jpg" type="image/jpeg" />
   <link rel="preload" href="fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
@@ -36,6 +36,11 @@
   <script src="data.js"></script>
   <script>
     document.getElementById('footer-year').textContent = new Date().getFullYear();
+    const scrollStorageKey = 'profile-scroll-y';
+
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
 
     // Populate artist info from data.js
     document.title = artist.name;
@@ -58,8 +63,34 @@
       });
     }
 
+    function restoreSavedScroll() {
+      const savedScroll = sessionStorage.getItem(scrollStorageKey);
+      if (!savedScroll) {
+        return;
+      }
+
+      const scrollY = Number.parseInt(savedScroll, 10);
+      if (Number.isNaN(scrollY)) {
+        sessionStorage.removeItem(scrollStorageKey);
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollY);
+        requestAnimationFrame(() => {
+          window.scrollTo(0, scrollY);
+        });
+      });
+
+      sessionStorage.removeItem(scrollStorageKey);
+    }
+
     resetTransitionState();
-    window.addEventListener('pageshow', resetTransitionState);
+    restoreSavedScroll();
+    window.addEventListener('pageshow', () => {
+      resetTransitionState();
+      restoreSavedScroll();
+    });
     window.addEventListener('pagehide', resetTransitionState);
 
     function prefetchSongPage(songId) {
@@ -125,6 +156,7 @@
         }
 
         event.preventDefault();
+        sessionStorage.setItem(scrollStorageKey, String(window.scrollY));
         rememberSelectedSong(song);
         prefetchSongPage(song.id);
         card.classList.add('song-card-activating');
