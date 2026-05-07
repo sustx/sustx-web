@@ -78,7 +78,7 @@ nav {
 
 /* ── HERO (index) ── */
 .hero {
-  padding: 50px 32px 24px;
+  padding: 50px 32px 0;
   max-width: 900px;
   margin: 0 auto;
 }
@@ -97,6 +97,7 @@ nav {
   font-weight: 700;
   line-height: 1.02;
   letter-spacing: -0.03em;
+  margin-bottom: 0;
   background: linear-gradient(135deg, #fff 30%, #666 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -107,7 +108,7 @@ nav {
 .grid-section {
   max-width: 900px;
   margin: 0 auto;
-  padding: 0 32px 80px;
+  padding: 12px 32px 80px;
 }
 
 .grid-heading {
