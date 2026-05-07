@@ -78,7 +78,7 @@ nav {
 
 /* ── HERO (index) ── */
 .hero {
-  padding: 100px 32px 24px;
+  padding: 50px 32px 24px;
   max-width: 900px;
   margin: 0 auto;
 }
@@ -393,7 +393,7 @@ footer {
 /* ── RESPONSIVE ── */
 @media (max-width: 600px) {
   nav { padding: 16px 20px; }
-  .hero { padding: 120px 20px 48px; }
+  .hero { padding: 60px 20px 48px; }
   .grid-section { padding: 0 20px 60px; }
   .songs-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .song-page { padding: 90px 20px 48px; }
