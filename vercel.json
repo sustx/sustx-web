@@ -31,20 +31,20 @@
       ]
     },
     {
-      "source": "/style.css",
+      "source": "/style.6e85a90c.css",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=3600, stale-while-revalidate=86400"
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     },
     {
-      "source": "/data.js",
+      "source": "/data.b22b3b37.js",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=3600, stale-while-revalidate=86400"
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     },
