@@ -1,6 +1,6 @@
 const artist = {
   name: "Sustancia 'X'",
-  avatar: "assets/profile.webp",
+  avatar: "assets/profile.avif",
 };
 
 function buildArtSources(path) {
@@ -13,6 +13,7 @@ function buildArtSources(path) {
     return {
       fallback: path,
       jpgSrcSet: path,
+      avifSrcSet: "",
       webpSrcSet: "",
       preload: path,
     };
@@ -25,8 +26,9 @@ function buildArtSources(path) {
   return {
     fallback,
     jpgSrcSet: `${base}-320.${normalizedExtension} 320w, ${fallback} 640w`,
+    avifSrcSet: `${base}-320.avif 320w, ${base}.avif 640w`,
     webpSrcSet: `${base}-320.webp 320w, ${base}.webp 640w`,
-    preload: `${base}.webp`,
+    preload: `${base}.avif`,
   };
 }
 
@@ -53,6 +55,7 @@ function buildResponsivePictureHTML(artSources, alt, sizes, options = {}) {
 
   return `
     <picture>
+      <source type="image/avif" srcset="${artSources.avifSrcSet}" sizes="${sizes}" />
       <source type="image/webp" srcset="${artSources.webpSrcSet}" sizes="${sizes}" />
       <img src="${artSources.fallback}" srcset="${artSources.jpgSrcSet}" sizes="${sizes}" alt="${alt}"${classAttr}${loadingAttr}${decodingAttr}${fetchPriorityAttr}${ariaHiddenAttr}${onerrorAttr} />
     </picture>
