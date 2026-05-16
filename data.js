@@ -1,6 +1,6 @@
 const artist = {
   name: "Sustancia 'X'",
-  avatar: "assets/profile.jpg",
+  avatar: "assets/profile.webp",
 };
 
 function buildArtSources(path) {
