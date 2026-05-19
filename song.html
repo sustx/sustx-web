@@ -103,11 +103,7 @@
         const ariaHiddenAttr = ariaHidden ? ` aria-hidden="true"` : '';
 
         return `
-          <picture>
-            <source type="image/avif" srcset="${artSources.avifSrcSet}" sizes="${sizes}" />
-            <source type="image/webp" srcset="${artSources.webpSrcSet}" sizes="${sizes}" />
-            <img src="${artSources.fallback}" srcset="${artSources.jpgSrcSet}" sizes="${sizes}" alt="${alt}"${loadingAttr}${decodingAttr}${fetchPriorityAttr}${ariaHiddenAttr}${onerrorAttr} />
-          </picture>
+          <img src="${artSources.src}" srcset="${artSources.srcSet}" sizes="${sizes}" alt="${alt}"${loadingAttr}${decodingAttr}${fetchPriorityAttr}${ariaHiddenAttr}${onerrorAttr} />
         `;
       }
 

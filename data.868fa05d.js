@@ -8,26 +8,20 @@ function buildArtSources(path) {
     return null;
   }
 
-  const match = path.match(/^(.*)\.(jpe?g|png)$/i);
+  const match = path.match(/^(.*)\.avif$/i);
   if (!match) {
     return {
-      fallback: path,
-      jpgSrcSet: path,
-      avifSrcSet: "",
-      webpSrcSet: "",
+      src: path,
+      srcSet: path,
       preload: path,
     };
   }
 
-  const [, base, extension] = match;
-  const normalizedExtension = extension.toLowerCase() === "jpeg" ? "jpg" : extension.toLowerCase();
-  const fallback = `${base}.${normalizedExtension}`;
+  const [, base] = match;
 
   return {
-    fallback,
-    jpgSrcSet: `${base}-320.${normalizedExtension} 320w, ${fallback} 640w`,
-    avifSrcSet: `${base}-320.avif 320w, ${base}.avif 640w`,
-    webpSrcSet: `${base}-320.webp 320w, ${base}.webp 640w`,
+    src: `${base}.avif`,
+    srcSet: `${base}-320.avif 320w, ${base}.avif 640w`,
     preload: `${base}.avif`,
   };
 }
@@ -54,11 +48,7 @@ function buildResponsivePictureHTML(artSources, alt, sizes, options = {}) {
   const ariaHiddenAttr = ariaHidden ? ` aria-hidden="true"` : "";
 
   return `
-    <picture>
-      <source type="image/avif" srcset="${artSources.avifSrcSet}" sizes="${sizes}" />
-      <source type="image/webp" srcset="${artSources.webpSrcSet}" sizes="${sizes}" />
-      <img src="${artSources.fallback}" srcset="${artSources.jpgSrcSet}" sizes="${sizes}" alt="${alt}"${classAttr}${loadingAttr}${decodingAttr}${fetchPriorityAttr}${ariaHiddenAttr}${onerrorAttr} />
-    </picture>
+    <img src="${artSources.src}" srcset="${artSources.srcSet}" sizes="${sizes}" alt="${alt}"${classAttr}${loadingAttr}${decodingAttr}${fetchPriorityAttr}${ariaHiddenAttr}${onerrorAttr} />
   `;
 }
 
@@ -67,7 +57,7 @@ const songs = [
     id: "ella-me-vio",
     title: "Ella Me Vio",
     subtitle: "Single · 2025",
-    art: "assets/ella-me-vio.jpg",
+    art: "assets/ella-me-vio.avif",
     color: "#7c3aed", // accent glow color per track
     links: {
       spotify: "https://open.spotify.com/album/0wf1GzzxEbJC8o3D2GVREU?si=tSYrvB3dSXqGwxGM7hz-Hw",
@@ -79,7 +69,7 @@ const songs = [
     id: "artificial",
     title: "Artificial",
     subtitle: "Single · 2024",
-    art: "assets/artificial.jpg",
+    art: "assets/artificial.avif",
     color: "#7c3aed", // accent glow color per track
     links: {
       spotify: "https://open.spotify.com/album/5mQTyAXW9pDZBIGRLWcLan?si=FAoXCO87Rfu5X1jrf9clQA",
@@ -91,7 +81,7 @@ const songs = [
     id: "weekencito",
     title: "Weekencito",
     subtitle: "Single · 2024",
-    art: "assets/weekencito.jpg",
+    art: "assets/weekencito.avif",
     color: "#a84545",
     links: {
       spotify: "https://open.spotify.com/album/0fqGL7aWCZjeB5vR5meDV6?si=XLEScrsjQtiLJ_q1qUwQ4Q",
@@ -103,7 +93,7 @@ const songs = [
     id: "una-vez-mas",
     title: "Una Vez Más",
     subtitle: "Single · 2023",
-    art: "assets/una-vez-mas.jpg",
+    art: "assets/una-vez-mas.avif",
     color: "#becfd3",
     links: {
       spotify: "https://open.spotify.com/album/5F3rXzONU01fNqSVFydwui?si=idaEC31yTMari5OOzZGrjw",
@@ -115,7 +105,7 @@ const songs = [
     id: "no-quiere",
     title: "No Quiere",
     subtitle: "Single · 2023",
-    art: "assets/no-quiere.jpg",
+    art: "assets/no-quiere.avif",
     color: "#0891b2",
     links: {
       spotify: "https://open.spotify.com/album/6QLJy2RXJ8JX461wgzhGlL?si=B_P0KfJHRjC4J6O-mmiuJw",
@@ -127,7 +117,7 @@ const songs = [
     id: "llegar",
     title: "Llegar",
     subtitle: "Single · 2023",
-    art: "assets/llegar.jpg",
+    art: "assets/llegar.avif",
     color: "#dda867",
     links: {
       spotify: "https://open.spotify.com/album/2XHCUhQFIw1F98azKbdH63?si=YqPRMk-CQsyh-hwBKKRimQ",
@@ -139,7 +129,7 @@ const songs = [
     id: "en-mi-mente",
     title: "En Mi Mente",
     subtitle: "Single · 2023",
-    art: "assets/en-mi-mente.jpg",
+    art: "assets/en-mi-mente.avif",
     color: "#dc2626",
     links: {
       spotify: "https://open.spotify.com/album/3rvnfN3MNbUHLXMtfcJ8qO?si=fmjMATjfQL6Xs97lyxsVhw",
