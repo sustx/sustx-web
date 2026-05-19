@@ -14,7 +14,7 @@
       <div class="artist-profile fade-up fade-up-1">
         <picture style="display: block;">
           <source type="image/avif" srcset="assets/profile.avif" />
-          <img class="artist-avatar" id="artist-avatar" src="assets/profile.webp" alt="Sustancia 'X'" width="80" height="80" />
+          <img class="artist-avatar" id="artist-avatar" src="assets/profile.webp" alt="Sustancia 'X'" width="80" height="80" fetchpriority="high" />
         </picture>
         <h1 class="hero-title" id="hero-artist-name">Sustancia 'X'</h1>
       </div>
@@ -25,7 +25,7 @@
       <div class="songs-grid" id="songs-grid">
         <a href="song.html?id=ella-me-vio" class="song-card fade-up" style="animation-delay: 0.1s; --glow: #7c3aed;" data-song-id="ella-me-vio">
           <div class="card-art">
-            <picture><source type="image/avif" srcset="assets/ella-me-vio-320.avif 320w, assets/ella-me-vio.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/ella-me-vio-320.webp 320w, assets/ella-me-vio.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/ella-me-vio.jpg" srcset="assets/ella-me-vio-320.jpg 320w, assets/ella-me-vio.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="Ella Me Vio" loading="lazy" decoding="async" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
+            <picture><source type="image/avif" srcset="assets/ella-me-vio-320.avif 320w, assets/ella-me-vio.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/ella-me-vio-320.webp 320w, assets/ella-me-vio.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/ella-me-vio.jpg" srcset="assets/ella-me-vio-320.jpg 320w, assets/ella-me-vio.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="Ella Me Vio" loading="eager" decoding="async" fetchpriority="high" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
           </div>
           <div class="card-info">
             <p class="card-title">Ella Me Vio</p>
@@ -34,7 +34,7 @@
         </a>
         <a href="song.html?id=artificial" class="song-card fade-up" style="animation-delay: 0.18s; --glow: #7c3aed;" data-song-id="artificial">
           <div class="card-art">
-            <picture><source type="image/avif" srcset="assets/artificial-320.avif 320w, assets/artificial.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/artificial-320.webp 320w, assets/artificial.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/artificial.jpg" srcset="assets/artificial-320.jpg 320w, assets/artificial.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="Artificial" loading="lazy" decoding="async" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
+            <picture><source type="image/avif" srcset="assets/artificial-320.avif 320w, assets/artificial.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/artificial-320.webp 320w, assets/artificial.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/artificial.jpg" srcset="assets/artificial-320.jpg 320w, assets/artificial.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="Artificial" loading="eager" decoding="async" fetchpriority="high" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
           </div>
           <div class="card-info">
             <p class="card-title">Artificial</p>
@@ -43,7 +43,7 @@
         </a>
         <a href="song.html?id=weekencito" class="song-card fade-up" style="animation-delay: 0.26s; --glow: #a84545;" data-song-id="weekencito">
           <div class="card-art">
-            <picture><source type="image/avif" srcset="assets/weekencito-320.avif 320w, assets/weekencito.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/weekencito-320.webp 320w, assets/weekencito.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/weekencito.jpg" srcset="assets/weekencito-320.jpg 320w, assets/weekencito.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="Weekencito" loading="lazy" decoding="async" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
+            <picture><source type="image/avif" srcset="assets/weekencito-320.avif 320w, assets/weekencito.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/weekencito-320.webp 320w, assets/weekencito.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/weekencito.jpg" srcset="assets/weekencito-320.jpg 320w, assets/weekencito.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="Weekencito" loading="eager" decoding="async" fetchpriority="high" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
           </div>
           <div class="card-info">
             <p class="card-title">Weekencito</p>
@@ -52,7 +52,7 @@
         </a>
         <a href="song.html?id=una-vez-mas" class="song-card fade-up" style="animation-delay: 0.34s; --glow: #becfd3;" data-song-id="una-vez-mas">
           <div class="card-art">
-            <picture><source type="image/avif" srcset="assets/una-vez-mas-320.avif 320w, assets/una-vez-mas.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/una-vez-mas-320.webp 320w, assets/una-vez-mas.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/una-vez-mas.jpg" srcset="assets/una-vez-mas-320.jpg 320w, assets/una-vez-mas.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="Una Vez Más" loading="lazy" decoding="async" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
+            <picture><source type="image/avif" srcset="assets/una-vez-mas-320.avif 320w, assets/una-vez-mas.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/una-vez-mas-320.webp 320w, assets/una-vez-mas.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/una-vez-mas.jpg" srcset="assets/una-vez-mas-320.jpg 320w, assets/una-vez-mas.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="Una Vez Más" loading="eager" decoding="async" fetchpriority="high" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
           </div>
           <div class="card-info">
             <p class="card-title">Una Vez Más</p>
@@ -61,7 +61,7 @@
         </a>
         <a href="song.html?id=no-quiere" class="song-card fade-up" style="animation-delay: 0.42s; --glow: #0891b2;" data-song-id="no-quiere">
           <div class="card-art">
-            <picture><source type="image/avif" srcset="assets/no-quiere-320.avif 320w, assets/no-quiere.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/no-quiere-320.webp 320w, assets/no-quiere.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/no-quiere.jpg" srcset="assets/no-quiere-320.jpg 320w, assets/no-quiere.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="No Quiere" loading="lazy" decoding="async" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
+            <picture><source type="image/avif" srcset="assets/no-quiere-320.avif 320w, assets/no-quiere.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/no-quiere-320.webp 320w, assets/no-quiere.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/no-quiere.jpg" srcset="assets/no-quiere-320.jpg 320w, assets/no-quiere.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="No Quiere" loading="eager" decoding="async" fetchpriority="high" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
           </div>
           <div class="card-info">
             <p class="card-title">No Quiere</p>
@@ -70,7 +70,7 @@
         </a>
         <a href="song.html?id=llegar" class="song-card fade-up" style="animation-delay: 0.5s; --glow: #dda867;" data-song-id="llegar">
           <div class="card-art">
-            <picture><source type="image/avif" srcset="assets/llegar-320.avif 320w, assets/llegar.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/llegar-320.webp 320w, assets/llegar.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/llegar.jpg" srcset="assets/llegar-320.jpg 320w, assets/llegar.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="Llegar" loading="lazy" decoding="async" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
+            <picture><source type="image/avif" srcset="assets/llegar-320.avif 320w, assets/llegar.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/llegar-320.webp 320w, assets/llegar.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/llegar.jpg" srcset="assets/llegar-320.jpg 320w, assets/llegar.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="Llegar" loading="eager" decoding="async" fetchpriority="high" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
           </div>
           <div class="card-info">
             <p class="card-title">Llegar</p>
@@ -79,7 +79,7 @@
         </a>
         <a href="song.html?id=en-mi-mente" class="song-card fade-up" style="animation-delay: 0.58s; --glow: #dc2626;" data-song-id="en-mi-mente">
           <div class="card-art">
-            <picture><source type="image/avif" srcset="assets/en-mi-mente-320.avif 320w, assets/en-mi-mente.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/en-mi-mente-320.webp 320w, assets/en-mi-mente.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/en-mi-mente.jpg" srcset="assets/en-mi-mente-320.jpg 320w, assets/en-mi-mente.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="En Mi Mente" loading="lazy" decoding="async" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
+            <picture><source type="image/avif" srcset="assets/en-mi-mente-320.avif 320w, assets/en-mi-mente.avif 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><source type="image/webp" srcset="assets/en-mi-mente-320.webp 320w, assets/en-mi-mente.webp 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" /><img src="assets/en-mi-mente.jpg" srcset="assets/en-mi-mente-320.jpg 320w, assets/en-mi-mente.jpg 640w" sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 220px" alt="En Mi Mente" loading="eager" decoding="async" fetchpriority="high" onerror="this.closest('.card-art').innerHTML='<div class=\'placeholder-art\'>🎵</div>'" /></picture>
           </div>
           <div class="card-info">
             <p class="card-title">En Mi Mente</p>
