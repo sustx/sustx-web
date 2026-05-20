@@ -94,6 +94,8 @@
   <script>
     document.getElementById('footer-year').textContent = new Date().getFullYear();
     const scrollStorageKey = 'profile-scroll-y';
+    const songTransitionStorageKey = 'selected-song-transition';
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const prefetchedSongs = new Set();
     const songPreviewById = Object.fromEntries([
       {"id":"ella-me-vio","title":"Ella Me Vio","subtitle":"Single · 2025","art":"assets/ella-me-vio.avif","color":"#7c3aed","links":{"spotify":"https://open.spotify.com/album/0wf1GzzxEbJC8o3D2GVREU?si=tSYrvB3dSXqGwxGM7hz-Hw","apple":"https://music.apple.com/us/album/ella-me-vio/1845122459?i=1845122460","youtube":"https://www.youtube.com/watch?v=A04JqK3OkSM"},"artSources":{"src":"assets/ella-me-vio.avif","srcSet":"assets/ella-me-vio-320.avif 320w, assets/ella-me-vio.avif 640w","preload":"assets/ella-me-vio.avif"},"artistName":"Sustancia 'X'"},
@@ -164,6 +166,62 @@
       sessionStorage.setItem('selected-song', JSON.stringify(song));
     }
 
+    function serializeRect(rect) {
+      return {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      };
+    }
+
+    function captureTextSnapshot(element) {
+      if (!element) {
+        return null;
+      }
+
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+
+      return {
+        rect: serializeRect(rect),
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        letterSpacing: style.letterSpacing,
+        lineHeight: style.lineHeight,
+        color: style.color,
+        textTransform: style.textTransform,
+      };
+    }
+
+    function rememberSongTransition(card, songId) {
+      if (prefersReducedMotion) {
+        sessionStorage.removeItem(songTransitionStorageKey);
+        return;
+      }
+
+      const artEl = card.querySelector('.card-art');
+      if (!artEl) {
+        sessionStorage.removeItem(songTransitionStorageKey);
+        return;
+      }
+
+      const cardStyle = window.getComputedStyle(card);
+      const artRect = artEl.getBoundingClientRect();
+      const transitionState = {
+        id: songId,
+        createdAt: Date.now(),
+        art: {
+          ...serializeRect(artRect),
+          borderRadius: Number.parseFloat(cardStyle.borderTopLeftRadius) || 16,
+        },
+        title: captureTextSnapshot(card.querySelector('.card-title')),
+        subtitle: captureTextSnapshot(card.querySelector('.card-subtitle')),
+      };
+
+      sessionStorage.setItem(songTransitionStorageKey, JSON.stringify(transitionState));
+    }
+
     document.querySelectorAll('.song-card').forEach(card => {
       const songId = card.dataset.songId;
       const song = songPreviewById[songId];
@@ -184,12 +242,13 @@
         event.preventDefault();
         sessionStorage.setItem(scrollStorageKey, String(window.scrollY));
         rememberSelectedSong(song);
+        rememberSongTransition(card, songId);
         prefetchSongPage(songId);
         card.classList.add('song-card-activating');
         document.body.classList.add('page-transitioning');
         window.setTimeout(() => {
           window.location.href = card.href;
-        }, 140);
+        }, 190);
       });
     });
   </script>

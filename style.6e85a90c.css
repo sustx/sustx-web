@@ -72,6 +72,16 @@ body.page-transitioning::after {
   -webkit-backdrop-filter: blur(10px);
 }
 
+body.page-transitioning .song-card {
+  transition: transform 0.28s ease, opacity 0.28s ease, filter 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+}
+
+body.page-transitioning .song-card:not(.song-card-activating) {
+  opacity: 0.22;
+  transform: scale(0.96);
+  filter: blur(4px);
+}
+
 /* ── NAV ── */
 nav {
   position: fixed;
@@ -195,8 +205,16 @@ nav {
 }
 
 .song-card-activating {
-  transform: scale(0.985);
-  opacity: 0.88;
+  position: relative;
+  z-index: 120;
+  transform: translateY(-10px) scale(1.04);
+  opacity: 1;
+  border-color: rgba(255,255,255,0.22);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+}
+
+.song-card-activating .card-art img {
+  transform: scale(1.08);
 }
 
 .card-art {
@@ -323,6 +341,21 @@ nav {
   width: 100%;
 }
 
+html.song-transition-pending .song-album-art,
+html.song-transition-pending .song-title,
+html.song-transition-pending .song-subtitle,
+body.shared-song-transition .song-album-art,
+body.shared-song-transition .song-title,
+body.shared-song-transition .song-subtitle {
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+html.song-transition-pending .song-bg-blur,
+body.shared-song-transition .song-bg-blur {
+  opacity: 0.45;
+}
+
 .song-content.is-loading .song-album-art,
 .song-content.is-loading .song-title,
 .song-content.is-loading .song-subtitle,
@@ -407,6 +440,43 @@ nav {
   margin-bottom: 28px;
   text-transform: uppercase;
   min-height: 1em;
+}
+
+.shared-transition-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 260;
+}
+
+.shared-transition-art,
+.shared-transition-title,
+.shared-transition-subtitle {
+  position: fixed;
+  margin: 0;
+  pointer-events: none;
+  will-change: left, top, width, height, border-radius, opacity, transform;
+}
+
+.shared-transition-art {
+  object-fit: cover;
+  overflow: hidden;
+}
+
+.shared-transition-title,
+.shared-transition-subtitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shared-transition-title {
+  font-weight: 700;
+  color: #f0f0f0;
+}
+
+.shared-transition-subtitle {
+  color: var(--muted);
 }
 
 /* ── STREAM BUTTONS ── */
@@ -520,4 +590,14 @@ footer {
 
 @media (hover: none) {
   .card-play-icon { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.page-transitioning .song-card,
+  .shared-transition-art,
+  .shared-transition-title,
+  .shared-transition-subtitle {
+    transition: none !important;
+    animation: none !important;
+  }
 }

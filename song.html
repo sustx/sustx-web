@@ -10,9 +10,28 @@
   <style>html, body { overflow: hidden; height: 100dvh; }</style>
   <script>
     (() => {
+      const songTransitionStorageKey = 'selected-song-transition';
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const params = new URLSearchParams(window.location.search);
       const id = params.get('id');
       const rawPreview = sessionStorage.getItem('selected-song');
+      const rawTransition = sessionStorage.getItem(songTransitionStorageKey);
+
+      if (rawTransition && !prefersReducedMotion) {
+        try {
+          const transition = JSON.parse(rawTransition);
+          const isFresh = transition && typeof transition.createdAt === 'number' && (Date.now() - transition.createdAt) < 4000;
+          if (isFresh && transition.id === id) {
+            window.__songTransition = transition;
+            document.documentElement.classList.add('song-transition-pending');
+          } else {
+            sessionStorage.removeItem(songTransitionStorageKey);
+          }
+        } catch (error) {
+          console.warn('Ignoring invalid song transition cache.', error);
+          sessionStorage.removeItem(songTransitionStorageKey);
+        }
+      }
 
       if (!rawPreview) {
         return;
@@ -160,6 +179,133 @@
     const contentEl = document.getElementById('song-content');
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
+    const songTransitionStorageKey = 'selected-song-transition';
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let sharedSongTransitionPlayed = false;
+
+    function clearSharedSongTransition() {
+      document.documentElement.classList.remove('song-transition-pending');
+      document.body.classList.remove('shared-song-transition');
+      sessionStorage.removeItem(songTransitionStorageKey);
+      delete window.__songTransition;
+    }
+
+    function applyRectStyles(element, rect) {
+      element.style.left = `${rect.left}px`;
+      element.style.top = `${rect.top}px`;
+      element.style.width = `${rect.width}px`;
+      if ('height' in rect) {
+        element.style.height = `${rect.height}px`;
+      }
+    }
+
+    function createTextOverlay(className, text, snapshot) {
+      if (!snapshot || !snapshot.rect) {
+        return null;
+      }
+
+      const element = document.createElement('div');
+      element.className = className;
+      element.textContent = text;
+      applyRectStyles(element, snapshot.rect);
+      element.style.fontSize = snapshot.fontSize;
+      element.style.fontWeight = snapshot.fontWeight;
+      element.style.letterSpacing = snapshot.letterSpacing;
+      element.style.lineHeight = snapshot.lineHeight;
+      element.style.color = snapshot.color;
+      element.style.textTransform = snapshot.textTransform;
+      return element;
+    }
+
+    function animateSharedSongEntrance(song) {
+      if (sharedSongTransitionPlayed || prefersReducedMotion) {
+        clearSharedSongTransition();
+        return;
+      }
+
+      const transition = window.__songTransition;
+      if (!transition || transition.id !== song.id || !transition.art) {
+        clearSharedSongTransition();
+        return;
+      }
+
+      const artEl = document.getElementById('album-art');
+      const titleEl = document.getElementById('song-title');
+      const subtitleEl = document.getElementById('song-subtitle');
+      const artImg = artEl.querySelector('img');
+
+      if (!artImg) {
+        clearSharedSongTransition();
+        return;
+      }
+
+      sharedSongTransitionPlayed = true;
+      document.documentElement.classList.remove('song-transition-pending');
+      document.body.classList.add('shared-song-transition');
+
+      const layer = document.createElement('div');
+      layer.className = 'shared-transition-layer';
+
+      const artOverlay = document.createElement('img');
+      artOverlay.className = 'shared-transition-art';
+      artOverlay.src = song.artSources?.src || song.art;
+      artOverlay.srcset = song.artSources?.srcSet || '';
+      artOverlay.sizes = '(max-width: 600px) 75vw, 240px';
+      artOverlay.alt = '';
+      applyRectStyles(artOverlay, transition.art);
+      artOverlay.style.borderRadius = `${transition.art.borderRadius || 16}px`;
+      artOverlay.style.boxShadow = '0 18px 42px rgba(0,0,0,0.3)';
+      artOverlay.style.transition = 'left 0.46s cubic-bezier(0.22, 1, 0.36, 1), top 0.46s cubic-bezier(0.22, 1, 0.36, 1), width 0.46s cubic-bezier(0.22, 1, 0.36, 1), height 0.46s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.46s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.46s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease';
+      layer.appendChild(artOverlay);
+
+      const titleOverlay = createTextOverlay('shared-transition-title', song.title, transition.title);
+      if (titleOverlay) {
+        titleOverlay.style.transition = 'left 0.4s cubic-bezier(0.22, 1, 0.36, 1), top 0.4s cubic-bezier(0.22, 1, 0.36, 1), width 0.4s cubic-bezier(0.22, 1, 0.36, 1), font-size 0.4s cubic-bezier(0.22, 1, 0.36, 1), letter-spacing 0.4s cubic-bezier(0.22, 1, 0.36, 1), line-height 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease 0.22s';
+        layer.appendChild(titleOverlay);
+      }
+
+      const subtitleOverlay = createTextOverlay('shared-transition-subtitle', song.subtitle || '', transition.subtitle);
+      if (subtitleOverlay) {
+        subtitleOverlay.style.transition = 'left 0.38s cubic-bezier(0.22, 1, 0.36, 1), top 0.38s cubic-bezier(0.22, 1, 0.36, 1), width 0.38s cubic-bezier(0.22, 1, 0.36, 1), font-size 0.38s cubic-bezier(0.22, 1, 0.36, 1), letter-spacing 0.38s cubic-bezier(0.22, 1, 0.36, 1), line-height 0.38s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease 0.18s';
+        layer.appendChild(subtitleOverlay);
+      }
+
+      document.body.appendChild(layer);
+
+      requestAnimationFrame(() => {
+        const artRect = artEl.getBoundingClientRect();
+        const artStyle = window.getComputedStyle(artEl);
+        applyRectStyles(artOverlay, artRect);
+        artOverlay.style.borderRadius = artStyle.borderRadius;
+        artOverlay.style.boxShadow = artStyle.boxShadow;
+
+        const titleRect = titleEl.getBoundingClientRect();
+        const titleStyle = window.getComputedStyle(titleEl);
+        if (titleOverlay) {
+          applyRectStyles(titleOverlay, titleRect);
+          titleOverlay.style.fontSize = titleStyle.fontSize;
+          titleOverlay.style.letterSpacing = titleStyle.letterSpacing;
+          titleOverlay.style.lineHeight = titleStyle.lineHeight;
+          titleOverlay.style.opacity = '0';
+        }
+
+        const subtitleRect = subtitleEl.getBoundingClientRect();
+        const subtitleStyle = window.getComputedStyle(subtitleEl);
+        if (subtitleOverlay) {
+          applyRectStyles(subtitleOverlay, subtitleRect);
+          subtitleOverlay.style.fontSize = subtitleStyle.fontSize;
+          subtitleOverlay.style.letterSpacing = subtitleStyle.letterSpacing;
+          subtitleOverlay.style.lineHeight = subtitleStyle.lineHeight;
+          subtitleOverlay.style.opacity = '0';
+        }
+      });
+
+      window.setTimeout(() => {
+        layer.remove();
+        document.body.classList.remove('shared-song-transition');
+        clearSharedSongTransition();
+      }, 480);
+    }
 
     function renderSong(song, artistName) {
       document.title = `${song.title} — ${artistName}`;
@@ -241,6 +387,7 @@
       });
 
       contentEl.classList.remove('is-loading');
+      animateSharedSongEntrance(song);
     }
 
     navLogo.textContent = artist.name;
@@ -253,6 +400,7 @@
     const song = songs.find(s => s.id === id);
 
     if (!song) {
+      clearSharedSongTransition();
       document.title = 'Not Found';
       document.getElementById('song-title').textContent = 'Song not found';
       document.getElementById('song-subtitle').textContent = '';
