@@ -56,10 +56,7 @@ body {
 body::after {
   content: '';
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) * -1);
-  right: calc(env(safe-area-inset-right, 0px) * -1);
-  bottom: calc(env(safe-area-inset-bottom, 0px) * -1);
-  left: calc(env(safe-area-inset-left, 0px) * -1);
+  inset: 0;
   background: rgba(8,8,8,0.12);
   backdrop-filter: blur(0);
   -webkit-backdrop-filter: blur(0);
@@ -319,10 +316,7 @@ nav {
 
 .song-bg-blur {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) * -1);
-  right: calc(env(safe-area-inset-right, 0px) * -1);
-  bottom: calc(env(safe-area-inset-bottom, 0px) * -1);
-  left: calc(env(safe-area-inset-left, 0px) * -1);
+  inset: 0;
   z-index: 0;
   pointer-events: none;
 }
@@ -450,10 +444,7 @@ body.shared-song-transition .song-bg-blur {
 
 .shared-transition-layer {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) * -1);
-  right: calc(env(safe-area-inset-right, 0px) * -1);
-  bottom: calc(env(safe-area-inset-bottom, 0px) * -1);
-  left: calc(env(safe-area-inset-left, 0px) * -1);
+  inset: 0;
   pointer-events: none;
   z-index: 260;
 }
@@ -537,7 +528,7 @@ body.shared-song-transition .song-bg-blur {
 }
 
 .btn-apple {
-  background: #FF4E6B;
+  background: linear-gradient(180deg, #ff5c7a 0%, #ff2d55 100%);
   color: #fff;
   border-color: rgba(255,255,255,0.08);
 }
@@ -553,7 +544,7 @@ body.shared-song-transition .song-bg-blur {
   height: 22px;
 }
 
-.btn-apple:hover   { box-shadow: 0 12px 32px rgba(255,78,107,0.42); }
+.btn-apple:hover   { box-shadow: 0 12px 32px rgba(255,45,85,0.42); }
 .btn-youtube:hover { box-shadow: 0 12px 32px rgba(255,0,0,0.4); }
 
 /* ── FOOTER ── */
