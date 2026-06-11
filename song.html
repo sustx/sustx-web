@@ -57,14 +57,14 @@
     <div class="song-bg-blur" id="bg-blur"></div>
 
     <div class="song-content is-loading" id="song-content">
-      <div class="song-album-art fade-up fade-up-1" id="album-art">
+      <div class="song-album-art fade-up fade-up-1" id="album-art" style="view-transition-name: active-art;">
         <div class="song-art-skeleton ghost-shimmer" aria-hidden="true"></div>
       </div>
 
-      <h1 class="song-title fade-up fade-up-2" id="song-title">
+      <h1 class="song-title fade-up fade-up-2" id="song-title" style="view-transition-name: active-title;">
         <span class="song-line-skeleton ghost-shimmer" aria-hidden="true"></span>
       </h1>
-      <p class="song-subtitle fade-up fade-up-3" id="song-subtitle">
+      <p class="song-subtitle fade-up fade-up-3" id="song-subtitle" style="view-transition-name: active-subtitle;">
         <span class="song-subtitle-skeleton ghost-shimmer" aria-hidden="true"></span>
       </p>
 
@@ -112,14 +112,6 @@
       const titleEl = document.getElementById('song-title');
       const subtitleEl = document.getElementById('song-subtitle');
       const btnsEl = document.getElementById('stream-buttons');
-
-      const params = new URLSearchParams(window.location.search);
-      const id = params.get('id');
-      if (id) {
-        artEl.style.viewTransitionName = `art-${id}`;
-        titleEl.style.viewTransitionName = `title-${id}`;
-        subtitleEl.style.viewTransitionName = `subtitle-${id}`;
-      }
 
       document.title = `${preview.title} — ${preview.artistName || 'Artist'}`;
       titleEl.textContent = preview.title;

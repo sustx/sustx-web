@@ -109,6 +109,29 @@
       history.scrollRestoration = 'manual';
     }
 
+    function setupActiveViewTransitionNames() {
+      // Clear any existing active view-transition-names first to prevent compositor layer bloat
+      document.querySelectorAll('[style*="view-transition-name"]').forEach(el => {
+        el.style.viewTransitionName = '';
+      });
+
+      const selectedSongRaw = sessionStorage.getItem('selected-song');
+      if (selectedSongRaw) {
+        try {
+          const song = JSON.parse(selectedSongRaw);
+          const card = document.querySelector(`.song-card[data-song-id="${song.id}"]`);
+          if (card) {
+            const artEl = card.querySelector('.card-art');
+            const titleEl = card.querySelector('.card-title');
+            const subtitleEl = card.querySelector('.card-subtitle');
+            if (artEl) artEl.style.viewTransitionName = 'active-art';
+            if (titleEl) titleEl.style.viewTransitionName = 'active-title';
+            if (subtitleEl) subtitleEl.style.viewTransitionName = 'active-subtitle';
+          }
+        } catch (e) {}
+      }
+    }
+
     function restoreSavedScroll() {
       const savedScroll = sessionStorage.getItem(scrollStorageKey);
       if (!savedScroll) {
@@ -121,18 +144,27 @@
         return;
       }
 
+      // Temporarily disable smooth scroll to perform instant jump, preventing view-transition scroll lag
+      const htmlStyle = document.documentElement.style;
+      const originalScrollBehavior = htmlStyle.scrollBehavior;
+      htmlStyle.scrollBehavior = 'auto';
+
+      window.scrollTo(0, scrollY);
+
       requestAnimationFrame(() => {
         window.scrollTo(0, scrollY);
         requestAnimationFrame(() => {
-          window.scrollTo(0, scrollY);
+          htmlStyle.scrollBehavior = originalScrollBehavior;
         });
       });
 
       sessionStorage.removeItem(scrollStorageKey);
     }
 
+    setupActiveViewTransitionNames();
     restoreSavedScroll();
     window.addEventListener('pageshow', () => {
+      setupActiveViewTransitionNames();
       restoreSavedScroll();
     });
 
@@ -161,14 +193,6 @@
         return;
       }
 
-      // Dynamically assign view-transition-name to card's elements for smooth native CSS transition
-      const artEl = card.querySelector('.card-art');
-      const titleEl = card.querySelector('.card-title');
-      const subtitleEl = card.querySelector('.card-subtitle');
-      if (artEl) artEl.style.viewTransitionName = `art-${songId}`;
-      if (titleEl) titleEl.style.viewTransitionName = `title-${songId}`;
-      if (subtitleEl) subtitleEl.style.viewTransitionName = `subtitle-${songId}`;
-
       const warmSongPage = () => prefetchSongPage(songId);
       card.addEventListener('pointerenter', warmSongPage, { once: true });
       card.addEventListener('focus', warmSongPage, { once: true });
@@ -178,6 +202,18 @@
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
           return;
         }
+
+        // Instantly assign the active view-transition-names to the clicked card's elements for an instant transition
+        document.querySelectorAll('[style*="view-transition-name"]').forEach(el => {
+          el.style.viewTransitionName = '';
+        });
+
+        const artEl = card.querySelector('.card-art');
+        const titleEl = card.querySelector('.card-title');
+        const subtitleEl = card.querySelector('.card-subtitle');
+        if (artEl) artEl.style.viewTransitionName = 'active-art';
+        if (titleEl) titleEl.style.viewTransitionName = 'active-title';
+        if (subtitleEl) subtitleEl.style.viewTransitionName = 'active-subtitle';
 
         sessionStorage.setItem(scrollStorageKey, String(window.scrollY));
         rememberSelectedSong(song);
