@@ -120,9 +120,23 @@
       const subtitleEl = document.getElementById('song-subtitle');
       const btnsEl = document.getElementById('stream-buttons');
 
+      function getDarkThemeColor(hex, opacity = 0.06) {
+        if (!hex || !hex.startsWith('#')) return '#080808';
+        const cleanHex = hex.replace('#', '');
+        const r = parseInt(cleanHex.substring(0, 2), 16);
+        const g = parseInt(cleanHex.substring(2, 4), 16);
+        const b = parseInt(cleanHex.substring(4, 6), 16);
+        if (isNaN(r) || !isFinite(r)) return '#080808';
+        const darkR = Math.round(r * opacity + 8 * (1 - opacity));
+        const darkG = Math.round(g * opacity + 8 * (1 - opacity));
+        const darkB = Math.round(b * opacity + 8 * (1 - opacity));
+        return `rgb(${darkR}, ${darkG}, ${darkB})`;
+      }
+
       if (preview.color) {
-        document.documentElement.style.backgroundColor = `${preview.color}15`;
-        document.body.style.backgroundColor = `${preview.color}15`;
+        const darkColor = getDarkThemeColor(preview.color, 0.05);
+        document.documentElement.style.backgroundColor = darkColor;
+        document.body.style.backgroundColor = darkColor;
       }
 
       // Ensure the iOS status bar allows background bleed
@@ -183,13 +197,27 @@
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
 
+    function getDarkThemeColor(hex, opacity = 0.06) {
+      if (!hex || !hex.startsWith('#')) return '#080808';
+      const cleanHex = hex.replace('#', '');
+      const r = parseInt(cleanHex.substring(0, 2), 16);
+      const g = parseInt(cleanHex.substring(2, 4), 16);
+      const b = parseInt(cleanHex.substring(4, 6), 16);
+      if (isNaN(r) || !isFinite(r)) return '#080808';
+      const darkR = Math.round(r * opacity + 8 * (1 - opacity));
+      const darkG = Math.round(g * opacity + 8 * (1 - opacity));
+      const darkB = Math.round(b * opacity + 8 * (1 - opacity));
+      return `rgb(${darkR}, ${darkG}, ${darkB})`;
+    }
+
     function renderSong(song, artistName) {
       document.title = `${song.title} — ${artistName}`;
 
       // Dynamically set background color to a dark shade of the song's accent color to blend safe areas
       if (song.color) {
-        document.documentElement.style.backgroundColor = `${song.color}15`;
-        document.body.style.backgroundColor = `${song.color}15`;
+        const darkColor = getDarkThemeColor(song.color, 0.05);
+        document.documentElement.style.backgroundColor = darkColor;
+        document.body.style.backgroundColor = darkColor;
       }
 
       // Ensure the iOS status bar allows background bleed
