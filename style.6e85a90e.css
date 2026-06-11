@@ -47,7 +47,7 @@
 }
 
 ::view-transition-group(*) {
-  animation-duration: 0.4s;
+  animation-duration: 0.28s;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -215,9 +215,11 @@ nav {
   cursor: pointer;
 }
 
-.song-card:hover {
-  transform: translateY(-6px) scale(1.01);
-  border-color: rgba(255,255,255,0.14);
+@media (hover: hover) {
+  .song-card:hover {
+    transform: translateY(-6px) scale(1.01);
+    border-color: rgba(255,255,255,0.14);
+  }
 }
 
 .song-card-activating {
@@ -257,8 +259,10 @@ nav {
   transition: transform var(--transition);
 }
 
-.song-card:hover .card-art img {
-  transform: scale(1.06);
+@media (hover: hover) {
+  .song-card:hover .card-art img {
+    transform: scale(1.06);
+  }
 }
 
 .card-art .placeholder-art {
