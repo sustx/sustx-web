@@ -30,7 +30,12 @@
           const preload = document.createElement('link');
           preload.rel = 'preload';
           preload.as = 'image';
-          preload.href = preview.artSources?.preload || preview.art;
+          if (preview.artSources && preview.artSources.srcSet) {
+            preload.imageSrcset = preview.artSources.srcSet;
+            preload.imageSizes = '(max-width: 600px) 75vw, 240px';
+          } else {
+            preload.href = preview.art;
+          }
           document.head.appendChild(preload);
         }
       } catch (error) {

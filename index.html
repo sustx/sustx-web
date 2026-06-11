@@ -7,6 +7,24 @@
   <link rel="icon" href="assets/favicon.png" type="image/png" />
   <link rel="preload" href="fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="style.6e85a90c.css" />
+  <script type="speculationrules">
+  {
+    "prerender": [
+      {
+        "source": "list",
+        "urls": [
+          "song.html?id=ella-me-vio",
+          "song.html?id=artificial",
+          "song.html?id=weekencito",
+          "song.html?id=una-vez-mas",
+          "song.html?id=no-quiere",
+          "song.html?id=llegar",
+          "song.html?id=en-mi-mente"
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <main>
@@ -174,11 +192,16 @@
         return;
       }
 
+      // 1. Classic link prefetch (Chrome, Edge, Firefox)
       const link = document.createElement('link');
       link.rel = 'prefetch';
       link.as = 'document';
       link.href = href;
       document.head.appendChild(link);
+
+      // 2. Fetch API prefetch (Safari/iOS compatibility and disk cache priming)
+      fetch(href, { priority: 'low' }).catch(() => {});
+
       prefetchedSongs.add(href);
     }
 

@@ -51,6 +51,13 @@
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+@supports (view-transition-name: active-art) {
+  #album-art, #song-title, #song-subtitle {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
 html { scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
 html::-webkit-scrollbar { display: none; }
 
