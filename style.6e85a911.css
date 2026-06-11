@@ -320,26 +320,27 @@ nav {
 
 /* ── SONG PAGE ── */
 .song-page {
-  height: 100dvh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 24px 32px;
+  padding: 80px 24px calc(32px + env(safe-area-inset-bottom, 0px));
   position: relative;
-  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .song-bg-blur {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   transform: translate3d(0, 0, 0);
   will-change: transform;
 }
 
-.song-bg-blur img {
+.song-bg-blur img,
+.bg-blur-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -604,7 +605,7 @@ footer {
   .hero { padding: 60px 20px 48px; }
   .grid-section { padding: 0 20px 60px; }
   .songs-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .song-page { padding: 90px 20px 48px; }
+  .song-page { padding: 90px 20px calc(48px + env(safe-area-inset-bottom, 0px)); }
 }
 
 @media (hover: none) {
