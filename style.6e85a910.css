@@ -215,11 +215,9 @@ nav {
   cursor: pointer;
 }
 
-@media (hover: hover) {
-  .song-card:hover {
-    transform: translateY(-6px) scale(1.01);
-    border-color: rgba(255,255,255,0.14);
-  }
+.song-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  border-color: rgba(255,255,255,0.14);
 }
 
 .song-card-activating {
@@ -259,10 +257,8 @@ nav {
   transition: transform var(--transition);
 }
 
-@media (hover: hover) {
-  .song-card:hover .card-art img {
-    transform: scale(1.06);
-  }
+.song-card:hover .card-art img {
+  transform: scale(1.06);
 }
 
 .card-art .placeholder-art {
