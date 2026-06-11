@@ -192,15 +192,12 @@
         return;
       }
 
-      // 1. Classic link prefetch (Chrome, Edge, Firefox)
+      // Classic link prefetch (Chrome, Edge, Firefox)
       const link = document.createElement('link');
       link.rel = 'prefetch';
       link.as = 'document';
       link.href = href;
       document.head.appendChild(link);
-
-      // 2. Fetch API prefetch (Safari/iOS compatibility and disk cache priming)
-      fetch(href, { priority: 'low' }).catch(() => {});
 
       prefetchedSongs.add(href);
     }
