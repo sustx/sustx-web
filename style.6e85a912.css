@@ -320,13 +320,14 @@ nav {
 
 /* ── SONG PAGE ── */
 .song-page {
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 80px 24px calc(32px + env(safe-area-inset-bottom, 0px));
   position: relative;
+  overflow: hidden;
   box-sizing: border-box;
 }
 

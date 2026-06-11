@@ -7,7 +7,7 @@
   <link rel="icon" href="assets/favicon.png" type="image/png" />
   <link rel="preload" href="fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="style.6e85a912.css" />
-  <style>html, body { min-height: 100dvh; }</style>
+  <style>html, body { overflow: hidden; height: 100dvh; touch-action: none; }</style>
   <script>
     (() => {
       const params = new URLSearchParams(window.location.search);
@@ -120,6 +120,20 @@
       const subtitleEl = document.getElementById('song-subtitle');
       const btnsEl = document.getElementById('stream-buttons');
 
+      if (preview.color) {
+        document.documentElement.style.backgroundColor = `${preview.color}15`;
+        document.body.style.backgroundColor = `${preview.color}15`;
+      }
+
+      // Ensure the iOS status bar allows background bleed
+      let meta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'apple-mobile-web-app-status-bar-style';
+        meta.content = 'black-translucent';
+        document.head.appendChild(meta);
+      }
+
       document.title = `${preview.title} — ${preview.artistName || 'Artist'}`;
       titleEl.textContent = preview.title;
       subtitleEl.textContent = preview.subtitle || '';
@@ -171,6 +185,21 @@
 
     function renderSong(song, artistName) {
       document.title = `${song.title} — ${artistName}`;
+
+      // Dynamically set background color to a dark shade of the song's accent color to blend safe areas
+      if (song.color) {
+        document.documentElement.style.backgroundColor = `${song.color}15`;
+        document.body.style.backgroundColor = `${song.color}15`;
+      }
+
+      // Ensure the iOS status bar allows background bleed
+      let meta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'apple-mobile-web-app-status-bar-style';
+        meta.content = 'black-translucent';
+        document.head.appendChild(meta);
+      }
 
       const artEl = document.getElementById('album-art');
       const bgBlur = document.getElementById('bg-blur');
