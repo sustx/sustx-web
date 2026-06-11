@@ -6,7 +6,7 @@
   <title>Sustancia 'X'</title>
   <link rel="icon" href="assets/favicon.png" type="image/png" />
   <link rel="preload" href="fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="style.6e85a90e.css" />
+  <link rel="stylesheet" href="style.6e85a90f.css" />
   <script type="speculationrules">
   {
     "prerender": [
@@ -129,9 +129,12 @@
 
     function setupActiveViewTransitionNames() {
       // Clear any existing active view-transition-names first to prevent compositor layer bloat
-      document.querySelectorAll('[style*="view-transition-name"]').forEach(el => {
-        el.style.viewTransitionName = '';
-      });
+      const activeArt = document.querySelector('[style*="view-transition-name: active-art"]');
+      if (activeArt) activeArt.style.viewTransitionName = '';
+      const activeTitle = document.querySelector('[style*="view-transition-name: active-title"]');
+      if (activeTitle) activeTitle.style.viewTransitionName = '';
+      const activeSubtitle = document.querySelector('[style*="view-transition-name: active-subtitle"]');
+      if (activeSubtitle) activeSubtitle.style.viewTransitionName = '';
 
       const selectedSongRaw = sessionStorage.getItem('selected-song');
       if (selectedSongRaw) {
@@ -169,11 +172,9 @@
 
       window.scrollTo(0, scrollY);
 
+      // Simplified scroll restoration without nested RAF, avoiding layout locks on Safari
       requestAnimationFrame(() => {
-        window.scrollTo(0, scrollY);
-        requestAnimationFrame(() => {
-          htmlStyle.scrollBehavior = originalScrollBehavior;
-        });
+        htmlStyle.scrollBehavior = originalScrollBehavior;
       });
 
       sessionStorage.removeItem(scrollStorageKey);
@@ -187,6 +188,11 @@
     });
 
     function prefetchSongPage(songId) {
+      // If Speculation Rules are supported, let browser handle prerendering natively
+      if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) {
+        return;
+      }
+
       const href = `song.html?id=${songId}`;
       if (prefetchedSongs.has(href)) {
         return;
@@ -216,17 +222,37 @@
       const warmSongPage = () => prefetchSongPage(songId);
       card.addEventListener('pointerenter', warmSongPage, { once: true });
       card.addEventListener('focus', warmSongPage, { once: true });
-      card.addEventListener('touchstart', warmSongPage, { once: true, passive: true });
+
+      // Delay prefetch slightly on touchstart to ensure it's not a fast scroll swipe, preventing scroll jank
+      let touchTimeout;
+      card.addEventListener('touchstart', () => {
+        touchTimeout = setTimeout(warmSongPage, 80);
+      }, { once: true, passive: true });
+      card.addEventListener('touchmove', () => {
+        clearTimeout(touchTimeout);
+      }, { passive: true });
 
       card.addEventListener('click', event => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
           return;
         }
 
-        // Instantly assign the active view-transition-names to the clicked card's elements for an instant transition
-        document.querySelectorAll('[style*="view-transition-name"]').forEach(el => {
-          el.style.viewTransitionName = '';
-        });
+        // Targeted O(1) style cleanup of previous transition items to avoid full-page reflow
+        const previousSongRaw = sessionStorage.getItem('selected-song');
+        if (previousSongRaw) {
+          try {
+            const prevSong = JSON.parse(previousSongRaw);
+            const prevCard = document.querySelector(`.song-card[data-song-id="${prevSong.id}"]`);
+            if (prevCard) {
+              const prevArt = prevCard.querySelector('.card-art');
+              const prevTitle = prevCard.querySelector('.card-title');
+              const prevSubtitle = prevCard.querySelector('.card-subtitle');
+              if (prevArt) prevArt.style.viewTransitionName = '';
+              if (prevTitle) prevTitle.style.viewTransitionName = '';
+              if (prevSubtitle) prevSubtitle.style.viewTransitionName = '';
+            }
+          } catch (e) {}
+        }
 
         const artEl = card.querySelector('.card-art');
         const titleEl = card.querySelector('.card-title');
