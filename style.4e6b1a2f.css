@@ -56,7 +56,10 @@ body {
 body::after {
   content: '';
   position: fixed;
-  inset: 0;
+  top: calc(env(safe-area-inset-top, 0px) * -1);
+  right: calc(env(safe-area-inset-right, 0px) * -1);
+  bottom: calc(env(safe-area-inset-bottom, 0px) * -1);
+  left: calc(env(safe-area-inset-left, 0px) * -1);
   background: rgba(8,8,8,0.12);
   backdrop-filter: blur(0);
   -webkit-backdrop-filter: blur(0);
@@ -444,7 +447,10 @@ body.shared-song-transition .song-bg-blur {
 
 .shared-transition-layer {
   position: fixed;
-  inset: 0;
+  top: calc(env(safe-area-inset-top, 0px) * -1);
+  right: calc(env(safe-area-inset-right, 0px) * -1);
+  bottom: calc(env(safe-area-inset-bottom, 0px) * -1);
+  left: calc(env(safe-area-inset-left, 0px) * -1);
   pointer-events: none;
   z-index: 260;
 }
