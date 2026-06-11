@@ -528,9 +528,8 @@ body.shared-song-transition .song-bg-blur {
 }
 
 .btn-apple {
-  background: linear-gradient(180deg, #ff5c7a 0%, #ff2d55 100%);
+  background: linear-gradient(135deg, #fc5c7d, #6a3093);
   color: #fff;
-  border-color: rgba(255,255,255,0.08);
 }
 
 .btn-youtube {
@@ -539,12 +538,7 @@ body.shared-song-transition .song-bg-blur {
 }
 
 .btn-spotify:hover { box-shadow: 0 12px 32px rgba(29,185,84,0.4); }
-.btn-apple svg {
-  width: 22px;
-  height: 22px;
-}
-
-.btn-apple:hover   { box-shadow: 0 12px 32px rgba(255,45,85,0.42); }
+.btn-apple:hover   { box-shadow: 0 12px 32px rgba(106,48,147,0.4); }
 .btn-youtube:hover { box-shadow: 0 12px 32px rgba(255,0,0,0.4); }
 
 /* ── FOOTER ── */
