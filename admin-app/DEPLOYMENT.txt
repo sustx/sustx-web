@@ -1,0 +1,15 @@
+Deploy this folder as a separate Vercel project with Root Directory set to `admin-app`.
+
+Recommended setup:
+1. Enable Vercel Authentication on the admin project so only approved Vercel users can access it.
+2. Connect the same public Vercel Blob store to both projects:
+   - the public site project at the repo root
+   - this admin project rooted at `admin-app`
+3. Set `PUBLIC_SITE_URL` on the admin project to your public site origin, for example `https://sustx.com`.
+4. Keep the public site project unprotected.
+
+Blob expectations:
+- `site-data.json` is the editable source of truth.
+- uploaded images are stored under `images/avatar/` and `images/song/`.
+
+If Blob is not connected yet, the admin app can still load its local default data, but save/upload actions will return a configuration error until the store is connected.

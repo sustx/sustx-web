@@ -2,6 +2,18 @@
   "buildCommand": null,
   "outputDirectory": ".",
   "framework": null,
+  "redirects": [
+    {
+      "source": "/admin-app",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/admin-app/(.*)",
+      "destination": "/",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/",
@@ -31,7 +43,7 @@
       ]
     },
     {
-      "source": "/style.6e85a912.css",
+      "source": "/style.47e1f6c1.css",
       "headers": [
         {
           "key": "Cache-Control",
@@ -40,7 +52,7 @@
       ]
     },
     {
-      "source": "/data.868fa05d.js",
+      "source": "/data.1b2f469e.js",
       "headers": [
         {
           "key": "Cache-Control",

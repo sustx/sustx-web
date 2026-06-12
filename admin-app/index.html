@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Sustancia 'X' Admin</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">Protected with Vercel Authentication</p>
+        <h1>Profile admin</h1>
+        <p class="page-copy">Edit the profile header, manage songs, upload artwork, and keep the newest release at the top.</p>
+      </div>
+      <div class="header-actions">
+        <button class="secondary-btn" id="reload-btn" type="button">Reload</button>
+        <button class="primary-btn" id="save-btn" type="button">Save changes</button>
+      </div>
+    </header>
+
+    <p class="status-banner" id="status-banner">Loading site data…</p>
+
+    <section class="panel" id="artist-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Profile</p>
+          <h2>Artist details</h2>
+        </div>
+      </div>
+      <div class="artist-grid" id="artist-fields"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Songs</p>
+          <h2>Discography</h2>
+          <p class="section-copy">New songs are inserted at the top. Use move up/down to arrange the public order.</p>
+        </div>
+        <button class="secondary-btn" id="add-song-btn" type="button">Add new song</button>
+      </div>
+
+      <div class="songs-stack" id="songs-stack"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
