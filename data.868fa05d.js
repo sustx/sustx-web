@@ -54,6 +54,18 @@ function buildResponsivePictureHTML(artSources, alt, sizes, options = {}) {
 
 const songs = [
   {
+    id: "chula",
+    title: "Chula",
+    subtitle: "Single · 2026",
+    art: "assets/chula.avif",
+    color: "#2986c4", // accent glow color per track
+    links: {
+      spotify: "https://open.spotify.com/track/2lMphaJlJYAzvwq1IWuiEL?si=f6c534927ee743dd",
+      apple: "https://music.apple.com/us/album/chula/6783310835?i=6783310836",
+      youtube: "https://www.youtube.com/watch?v=OIl0u1YprD0",
+    },
+  },
+  {
     id: "ella-me-vio",
     title: "Ella Me Vio",
     subtitle: "Single · 2025",
