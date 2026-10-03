@@ -1,1 +1,9 @@
 .DS_Store
+.env*
+.private/
+.vercel/
+__pycache__/
+*.parallax-license
+.venv/
+public/
+.vercel

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Parallax licenses · Sustx Audio</title>
+  <link rel="icon" href="/assets/favicon.png">
+  <link rel="stylesheet" href="/assets/parallax/site.css">
+  <script src="/assets/parallax/admin.js" defer></script>
+</head>
+<body class="admin-body">
+  <div class="page admin-page">
+    <header class="masthead"><a href="/parallax/" class="brand">SUSTX <span>AUDIO</span></a><span class="edition">PRIVATE</span></header>
+    <main class="admin-main">
+      <div class="eyebrow">PARALLAX</div><h1 class="admin-title">License desk<span class="title-dot">.</span></h1>
+      <p id="loading" class="section-note" role="status">Checking your session…</p>
+      <section id="login-panel" hidden>
+        <p class="section-note">Sign in to make a license for a customer.</p>
+        <form id="login-form" class="admin-form">
+          <label for="password">Owner password</label><input id="password" type="password" autocomplete="current-password" required maxlength="256">
+          <button class="button" type="submit">Sign in <span aria-hidden="true">↗</span></button>
+        </form>
+      </section>
+      <section id="issuer-panel" hidden>
+        <div class="section-top"><p class="section-note">Paste their code. Make their license.</p><button id="logout" type="button" class="text-button">Sign out</button></div>
+        <form id="issue-form" class="admin-form">
+          <label for="customer">Customer name</label><input id="customer" type="text" autocomplete="off" maxlength="160" placeholder="Their name" required>
+          <label for="request">Request code</label><textarea id="request" rows="3" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="PLX1-MAC-… or PLX1-WIN-…" required></textarea>
+          <p class="field-help">Use the full code from the plugin’s Copy request code button.</p>
+          <button class="button" type="submit">Generate license <span aria-hidden="true">↓</span></button>
+        </form>
+        <div id="license-ready" class="license-ready" hidden><span class="status-dot"></span><h2>Ready to send.</h2><p id="license-customer"></p><div class="license-actions"><button id="save-license" class="button" type="button">Download license <span aria-hidden="true">↓</span></button><button id="share-license" class="secondary-button" type="button" hidden>Share file</button></div><p class="field-help">Send the file to this customer. They import it in Parallax.</p></div>
+      </section>
+      <p id="admin-feedback" class="feedback" role="status" aria-live="polite"></p>
+      <noscript><p>Enable JavaScript to use the private license desk.</p></noscript>
+    </main>
+    <footer><span>Sustx Audio · Owner access</span><a href="/parallax/">Download page ↗</a></footer>
+  </div>
+</body>
+</html>

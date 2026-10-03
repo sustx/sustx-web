@@ -1,0 +1,12 @@
+.git
+.DS_Store
+.env*
+.private
+.venv
+**/__pycache__
+**/*.parallax-license
+tests
+scripts
+docs
+README.md
+public
