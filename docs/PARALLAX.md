@@ -153,3 +153,12 @@ production private key or alter the locally saved plugin license.
 The public download page currently offers only the Mac and Windows installers.
 The Windows VST3 ZIP is retained among release artifacts for future use, without
 a link on the public page.
+
+## Website interface preview
+
+The public page uses a native 3× render (1524 × 600) of the plugin interface,
+with depth fixed at 100 and output at 0.00 dB. Its eight-second animation moves only
+the reflection field and eases back to its starting state for a seamless loop.
+Browsers receive a smaller animated WebP where supported, with a GIF fallback.
+Visitors with reduced motion enabled receive the high-resolution still instead.
+The versioned preview filenames avoid cached copies of the earlier screenshot.
