@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <defs><path id="mark" d="M32 13 47 22V41L32 50 17 41V22Z M32 13V50 M17 22 47 41 M47 22 17 41"/></defs>
+  <use href="#mark" stroke="#101318" stroke-width="3.5"/>
+  <use href="#mark" stroke="#f4f7fb" stroke-width="1.8"/>
+</svg>
