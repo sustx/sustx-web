@@ -100,9 +100,10 @@ short PIN. Vercel Firewall can additionally rate-limit `/api/parallax` globally.
 4. Tap **Download license**, or **Share file** when your browser supports it.
 5. Send the file to the customer; they choose **Import license…** in Parallax.
 
-Only an authenticated owner can issue or read customer records. Each new license
+Only an authenticated owner can directly issue licenses or read customer records.
+Invited customers can redeem their invitation for their own license. Each new license
 is saved to the private `parallax-customer-records` Vercel Blob store before its
-file is returned. Records survive redeployments and include customer, license ID,
+file is returned. Records survive redeployments and include customer, email (for invitation unlocks), license ID,
 computer code, platform, issue date, and the original signed file. Storage failures
 prevent issuance instead of creating an unrecorded license.
 
@@ -115,14 +116,47 @@ same license ID are rejected.
 
 These are **issued licenses**, not confirmed activations. The plugin activates
 offline and sends no customer data to the website. No plugin update is needed.
-There is no customer self-service issuing or email sending.
+Customer self-service requires an invitation. The website does not send emails.
 
-Production records are private blobs accessible only through the authenticated
-API, never public download files or Git content. The store is connected to the
+Production records are private blobs. Only the authenticated admin API can list
+records; invitation access is limited to its own original license, never public download files or Git content. The store is connected to the
 existing Vercel project for production; its credential is marked Sensitive.
 Preview deployments need their own configured private store. Local previews use
 `.private/parallax-records.sqlite3` (excluded from Git/deployment), or an explicit
 `PARALLAX_RECORDS_PATH`; they do not change production records.
+
+## Invite a customer to unlock
+
+1. Sign in at `/parallax/admin/` and find **Invitations**.
+2. Optionally enter a recipient email; leave it blank for any recipient.
+3. Choose 1, 7 (default), or 30 days, then click **Create invitation**.
+4. Copy the private link immediately and send it yourself. The full link is only
+   shown on creation; storage keeps a token hash, not the secret token.
+5. The customer opens `/parallax/unlock/`, enters their name and email, pastes
+   the plugin request code, and downloads their license.
+
+The public Parallax page links to the unlock form. Customers can paste either an
+invitation code or the entire private link. The link carries its token in a URL
+fragment, keeping it out of server access URLs and referrers. Public requests do
+not use the owner's session cookie, and cannot list customer records, create or
+revoke invitations, export data, or fetch a license by its ID.
+
+Each invitation reserves exactly one license ID. Conditional creation in the
+private store elects a single winner when submissions race. The saved original
+is returned on retries for the same email and computer; another computer or email
+cannot claim that invitation. Records include customer name, email, computer
+code, dates, invitation ID, and the original signed file. Existing records remain
+compatible and show a blank email when none was collected.
+
+Expiry prevents the first redemption. An already redeemed invitation can still
+download its original file after the deadline, until revoked. **Revoke invitation**
+blocks future use of its link, including downloads; it does not invalidate an
+already issued offline license. The admin shows Ready, Redeemed, Expired, or
+Revoked. Customers only see their invitation status, never the admin's records.
+
+An email restriction checks the entered address. This does not verify email
+ownership: the secret invitation link remains the access credential. There is no
+phone collection, email delivery, or automatic activation reporting.
 
 ## Update a release
 

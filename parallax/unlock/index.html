@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Unlock Parallax · Sustx Audio</title>
+  <link rel="icon" href="/assets/favicon-v2.png">
+  <link rel="stylesheet" href="/assets/parallax/site.css">
+  <script src="/assets/parallax/unlock.js" defer></script>
+</head>
+<body>
+  <div class="page admin-page">
+    <header class="masthead"><a href="/parallax/" class="brand">SUSTX <span>AUDIO</span></a><span class="edition">INVITATION ONLY</span></header>
+    <main class="admin-main">
+      <div class="eyebrow">PARALLAX</div><h1 class="admin-title">Make it yours<span class="title-dot">.</span></h1>
+      <p class="section-note">Use your invitation to unlock Parallax on one computer.</p>
+      <form id="unlock-form" class="admin-form">
+        <label for="invitation">Invitation code</label><textarea id="invitation" rows="2" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="512" placeholder="Paste your invitation code or link" required></textarea>
+        <p id="invitation-status" class="field-help" role="status" aria-live="polite"></p>
+        <label for="customer">Your name</label><input id="customer" type="text" autocomplete="name" maxlength="160" required>
+        <label for="email">Email address</label><input id="email" type="email" autocomplete="email" maxlength="254" required>
+        <label for="request">Plugin request code</label><textarea id="request" rows="3" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="128" placeholder="PLX1-MAC-… or PLX1-WIN-…" required></textarea>
+        <p class="field-help">Open Parallax and click Copy request code, then paste it here.</p>
+        <button class="button" type="submit">Get my license <span aria-hidden="true">↓</span></button>
+      </form>
+      <p id="unlock-feedback" class="feedback" role="status" aria-live="polite"></p>
+      <section id="unlock-ready" class="license-ready" hidden>
+        <span class="status-dot"></span><h2>Your license is ready.</h2>
+        <p>Download the file, then choose Import license… in Parallax.</p>
+        <button id="download-license" class="button" type="button">Download license <span aria-hidden="true">↓</span></button>
+        <p class="field-help">Keep your invitation link. You can use it with the same email and plugin code to download this license again.</p>
+      </section>
+      <noscript><p>Enable JavaScript to unlock Parallax.</p></noscript>
+    </main>
+    <footer><span>Sustx Audio</span><a href="/parallax/">Back to Parallax ↗</a></footer>
+  </div>
+</body>
+</html>

@@ -1,9 +1,9 @@
-"""Owner-only Parallax issuer. Secrets are read from server environment variables."""
+"""Private Parallax administration and invitation-scoped customer unlocks."""
 import base64
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 import csv
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import hashlib
 import hmac
 from http.cookies import SimpleCookie, CookieError
@@ -28,6 +28,15 @@ SESSION_SECONDS = 8 * 60 * 60
 MAX_BODY = 24576
 MAX_LICENSE_BYTES = 16384
 RECORD_PREFIX = "parallax/licenses/"
+COLLECTIONS = {"licenses": RECORD_PREFIX, "invitations": "parallax/invitations/",
+               "revocations": "parallax/invitation-revocations/"}
+INVITE_TOKEN = re.compile(r"PLXI-([0-9a-f]{32})-([A-Za-z0-9_-]{43})\Z")
+
+
+class InvitationError(Exception):
+    def __init__(self, status, message):
+        self.status = status
+        super().__init__(message)
 
 
 class ConfigurationError(Exception):
@@ -82,8 +91,8 @@ def same_document(first, second):
 
 
 def record_summary(record):
-    return {key: record[key] for key in ("license_id", "customer", "machine", "platform",
-                                       "issued_at", "recorded_at", "source")}
+    return {key: record.get(key, "") for key in ("license_id", "customer", "email", "machine", "platform",
+                                                "issued_at", "recorded_at", "source", "invite_id")}
 
 
 class LocalRecords:
@@ -97,6 +106,7 @@ class LocalRecords:
         connection = sqlite3.connect(self.path, timeout=10)
         self.path.chmod(0o600)
         connection.execute("CREATE TABLE IF NOT EXISTS licenses (id TEXT PRIMARY KEY, record TEXT NOT NULL)")
+        connection.execute("CREATE TABLE IF NOT EXISTS private_entries (kind TEXT, id TEXT, record TEXT NOT NULL, PRIMARY KEY (kind, id))")
         try:
             with connection:
                 yield connection
@@ -111,17 +121,51 @@ class LocalRecords:
         except (OSError, sqlite3.Error, ValueError):
             raise StorageError("Customer records are unavailable. Please try again.") from None
 
-    def save(self, record):
+    def create_named(self, kind, key, value):
+        if kind not in COLLECTIONS:
+            raise ValueError("Unknown collection.")
+        key = canonical_id(key)
         try:
             with self.connection() as connection:
-                connection.execute("INSERT OR IGNORE INTO licenses VALUES (?, ?)",
-                                   (record["license_id"], json.dumps(record)))
-            saved = self.get(record["license_id"])
-            if not same_document(saved["document"], record["document"]):
-                raise RecordConflict("That license ID already belongs to a different file.")
-            return saved
+                if kind == "licenses":
+                    connection.execute("INSERT OR IGNORE INTO licenses VALUES (?, ?)", (key, json.dumps(value)))
+                    row = connection.execute("SELECT record FROM licenses WHERE id = ?", (key,)).fetchone()
+                else:
+                    connection.execute("INSERT OR IGNORE INTO private_entries VALUES (?, ?, ?)", (kind, key, json.dumps(value)))
+                    row = connection.execute("SELECT record FROM private_entries WHERE kind = ? AND id = ?", (kind, key)).fetchone()
+            return json.loads(row[0])
         except (OSError, sqlite3.Error):
-            raise StorageError("The license could not be saved. Please try again.") from None
+            raise StorageError("The record could not be saved. Please try again.") from None
+
+    def get_named(self, kind, key):
+        if kind == "licenses":
+            return self.get(key)
+        if kind not in COLLECTIONS:
+            raise ValueError("Unknown collection.")
+        try:
+            with self.connection() as connection:
+                row = connection.execute("SELECT record FROM private_entries WHERE kind = ? AND id = ?", (kind, key)).fetchone()
+            return json.loads(row[0]) if row else None
+        except (OSError, sqlite3.Error):
+            raise StorageError("Records are unavailable. Please try again.") from None
+
+    def list_named(self, kind):
+        if kind == "licenses":
+            return self.all()
+        if kind not in COLLECTIONS:
+            raise ValueError("Unknown collection.")
+        try:
+            with self.connection() as connection:
+                rows = connection.execute("SELECT record FROM private_entries WHERE kind = ?", (kind,)).fetchall()
+            return [json.loads(row[0]) for row in rows]
+        except (OSError, sqlite3.Error):
+            raise StorageError("Records are unavailable. Please try again.") from None
+
+    def save(self, record):
+        saved = self.create_named("licenses", record["license_id"], record)
+        if not same_document(saved["document"], record["document"]):
+            raise RecordConflict("That license ID already belongs to a different file.")
+        return saved
 
     def all(self):
         try:
@@ -137,78 +181,95 @@ class PrivateBlobRecords:
         if not os.environ.get("BLOB_READ_WRITE_TOKEN"):
             raise StorageError("Customer record storage has not been configured.")
 
-    def get(self, license_id):
+    def get_named(self, kind, key):
         from vercel.blob import BlobClient
         from vercel.blob.errors import BlobNotFoundError
+        path = COLLECTIONS[kind] + canonical_id(key) + ".json"
         try:
             with BlobClient() as client:
-                result = client.get(RECORD_PREFIX + license_id + ".json", access="private", use_cache=False)
+                result = client.get(path, access="private", use_cache=False)
             return json.loads(result.content)
         except BlobNotFoundError:
             return None
         except Exception:
-            raise StorageError("Customer records are unavailable. Please try again.") from None
+            raise StorageError("Records are unavailable. Please try again.") from None
 
-    def save(self, record):
+    def create_named(self, kind, key, value):
         from vercel.blob import BlobClient
-        existing = self.get(record["license_id"])
-        if existing:
-            if not same_document(existing["document"], record["document"]):
-                raise RecordConflict("That license ID already belongs to a different file.")
+        existing = self.get_named(kind, key)
+        if existing is not None:
             return existing
         try:
             with BlobClient() as client:
-                result = client.put(RECORD_PREFIX + record["license_id"] + ".json",
-                                    json.dumps(record).encode(), access="private", content_type="application/json",
+                result = client.put(COLLECTIONS[kind] + canonical_id(key) + ".json",
+                                    json.dumps(value).encode(), access="private", content_type="application/json",
                                     add_random_suffix=False, overwrite=False)
                 if ".private.blob.vercel-storage.com/" not in result.url:
-                    raise StorageError("Customer storage must be private.")
+                    raise StorageError("Record storage must be private.")
         except Exception:
-            # A concurrent, identical import may have won the atomic create.
-            saved = self.get(record["license_id"])
-            if saved and same_document(saved["document"], record["document"]):
+            # Conditional creation elects one winner; always use its original data.
+            saved = self.get_named(kind, key)
+            if saved is not None:
                 return saved
-            if saved:
-                raise RecordConflict("That license ID already belongs to a different file.") from None
-            raise StorageError("The license could not be saved. Please try again.") from None
-        return record
+            raise StorageError("The record could not be saved. Please try again.") from None
+        return value
 
-    def all(self):
+    def get(self, license_id):
+        return self.get_named("licenses", license_id)
+
+    def save(self, record):
+        saved = self.create_named("licenses", record["license_id"], record)
+        if not same_document(saved["document"], record["document"]):
+            raise RecordConflict("That license ID already belongs to a different file.")
+        return saved
+
+    def list_named(self, kind):
         from vercel.blob import BlobClient
         try:
             with BlobClient() as client:
-                items = list(client.iter_objects(prefix=RECORD_PREFIX, batch_size=1000))
+                items = list(client.iter_objects(prefix=COLLECTIONS[kind], batch_size=1000))
             ids = [canonical_id(Path(item.pathname).stem) for item in items if item.pathname.endswith(".json")]
             with ThreadPoolExecutor(max_workers=8) as pool:
-                records = list(pool.map(self.get, ids))
+                records = list(pool.map(lambda key: self.get_named(kind, key), ids))
             return [record for record in records if record is not None]
         except Exception:
-            raise StorageError("Customer records are unavailable. Please try again.") from None
+            raise StorageError("Records are unavailable. Please try again.") from None
+
+    def all(self):
+        return self.list_named("licenses")
 
 
 def record_store():
     return LocalRecords() if local_mode() else PrivateBlobRecords()
 
 
-def save_record(document, source):
+def make_record(document, source, email="", invite_id=""):
     text = document.decode() if isinstance(document, bytes) else document
     data = verify_document(text)
     record = {**{key: data[key] for key in ("license_id", "customer", "machine", "issued_at")},
               "platform": "macOS" if data["machine"].startswith("PLX1-MAC-") else "Windows",
               "recorded_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
               "source": source, "document": text}
-    return record_store().save(record)
+    if email:
+        record["email"] = email
+    if invite_id:
+        record["invite_id"] = invite_id
+    return record
+
+
+def save_record(document, source):
+    return record_store().save(make_record(document, source))
 
 
 def export_csv(records):
     output = io.StringIO(newline="")
     writer = csv.writer(output)
-    keys = ("customer", "license_id", "machine", "platform", "issued_at", "recorded_at", "source")
+    keys = ("customer", "email", "license_id", "machine", "platform", "issued_at", "recorded_at", "source", "invite_id")
     writer.writerow(keys)
     for record in records:
         values = []
         for key in keys:
-            value = str(record[key])
+            value = str(record.get(key, ""))
             # Spreadsheet formula injection must not be possible through names.
             values.append("'" + value if value.lstrip().startswith(("=", "+", "-", "@")) else value)
         writer.writerow(values)
@@ -283,7 +344,7 @@ def session_cookie(token, max_age=SESSION_SECONDS):
     return f"{cookie_name()}={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age={max_age}{secure}"
 
 
-def issue_license(customer, request):
+def issue_license(customer, request, license_id=None, issued_at=None):
     if not isinstance(customer, str) or not isinstance(request, str):
         raise ValueError("Enter a customer name and the complete request code.")
     customer, request = customer.strip(), request.strip()
@@ -302,14 +363,95 @@ def issue_license(customer, request):
             raise ValueError()
     except (KeyError, ValueError, OSError, TypeError):
         raise ConfigurationError("License signing is not configured for this release.") from None
-    license_id = str(uuid.uuid4())
+    license_id = license_id or str(uuid.uuid4())
     payload = json.dumps({"schema": 1, "product": PRODUCT, "license_id": license_id,
                           "customer": customer, "machine": request, "perpetual": True,
-                          "issued_at": datetime.now(timezone.utc).isoformat(timespec="seconds")},
+                          "issued_at": issued_at or datetime.now(timezone.utc).isoformat(timespec="seconds")},
                          ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     document = json.dumps({"payload": base64.b64encode(payload).decode(),
                            "signature": key.sign(payload).hex()}, indent=2).encode() + b"\n"
     return document, f"Parallax-{license_id}.parallax-license"
+
+
+def email_address(value, optional=False):
+    if not isinstance(value, str):
+        raise ValueError("Enter an email address.")
+    value = value.strip().lower()
+    if optional and not value:
+        return ""
+    if len(value.encode()) > 254 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value) or any(ord(c) < 32 for c in value):
+        raise ValueError("Enter a valid email address.")
+    return value
+
+
+def create_invitation(data):
+    email = email_address(data.get("email", ""), optional=True)
+    days = data.get("days", 7)
+    if type(days) is not int or not 1 <= days <= 90:
+        raise ValueError("Choose an expiry between 1 and 90 days.")
+    now = datetime.now(timezone.utc)
+    invite_id = str(uuid.uuid4())
+    token = f"PLXI-{uuid.UUID(invite_id).hex}-{secrets.token_urlsafe(32)}"
+    invitation = {"invite_id": invite_id, "token_hash": hashlib.sha256(token.encode()).hexdigest(),
+                  "email": email, "license_id": str(uuid.uuid4()),
+                  "created_at": now.isoformat(timespec="seconds"),
+                  "expires_at": (now + timedelta(days=days)).isoformat(timespec="seconds")}
+    record_store().create_named("invitations", invite_id, invitation)
+    return {"token": token, "invitation": invitation_summary(invitation, None, False)}
+
+
+def invitation_summary(invitation, record, revoked):
+    expired = datetime.fromisoformat(invitation["expires_at"]) <= datetime.now(timezone.utc)
+    status = "revoked" if revoked else "redeemed" if record else "expired" if expired else "ready"
+    return {key: invitation[key] for key in ("invite_id", "email", "created_at", "expires_at")} | {
+        "status": status, "customer": record["customer"] if record else "",
+        "license_id": record["license_id"] if record else ""}
+
+
+def invitation_history():
+    store = record_store()
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        invites, records, revocations = list(pool.map(store.list_named, ("invitations", "licenses", "revocations")))
+    records = {record["license_id"]: record for record in records}
+    revoked = {record["invite_id"] for record in revocations}
+    return [invitation_summary(invite, records.get(invite["license_id"]), invite["invite_id"] in revoked)
+            for invite in sorted(invites, key=lambda invite: invite["created_at"], reverse=True)]
+
+
+def invitation_access(token):
+    match = INVITE_TOKEN.fullmatch(token) if isinstance(token, str) else None
+    if not match:
+        raise InvitationError(403, "Enter a valid invitation code or use the link you received.")
+    invite_id = str(uuid.UUID(match[1]))
+    store = record_store()
+    invitation = store.get_named("invitations", invite_id)
+    if invitation is None or not hmac.compare_digest(invitation["token_hash"], hashlib.sha256(token.encode()).hexdigest()):
+        raise InvitationError(403, "This invitation is not available. Check your code or contact Sustx Audio.")
+    if store.get_named("revocations", invite_id):
+        raise InvitationError(410, "This invitation has been revoked. Contact Sustx Audio.")
+    record = store.get(invitation["license_id"])
+    if record is None and datetime.fromisoformat(invitation["expires_at"]) <= datetime.now(timezone.utc):
+        raise InvitationError(410, "This invitation has expired. Contact Sustx Audio for a new one.")
+    return store, invitation, record
+
+
+def redeem_invitation(data):
+    store, invitation, existing = invitation_access(data.get("token"))
+    email = email_address(data.get("email"))
+    if invitation["email"] and not hmac.compare_digest(invitation["email"].encode(), email.encode()):
+        raise InvitationError(403, "Use the email address this invitation was sent to.")
+    # Validate all fields even for retries; the stored original always wins.
+    document, _ = issue_license(data.get("customer"), data.get("request"), invitation["license_id"],
+                                existing["issued_at"] if existing else None)
+    candidate = make_record(document, "invitation", email, invitation["invite_id"])
+    record = existing or store.create_named("licenses", invitation["license_id"], candidate)
+    if record.get("invite_id") != invitation["invite_id"] or record.get("email") != email or record["machine"] != candidate["machine"]:
+        raise InvitationError(409, "This invitation has already unlocked another computer. Contact Sustx Audio if you need help.")
+    # A failed/retried download never issues another file. Revocation blocks link access.
+    if store.get_named("revocations", invitation["invite_id"]):
+        raise InvitationError(410, "This invitation has been revoked. Contact Sustx Audio.")
+    verify_document(record["document"])
+    return record["document"].encode(), f'Parallax-{record["license_id"]}.parallax-license'
 
 
 class handler(BaseHTTPRequestHandler):
@@ -358,6 +500,15 @@ class handler(BaseHTTPRequestHandler):
                 raise ValueError("Expected a JSON object.")
             encoded, secret = auth_settings()
             action = data.get("action")
+            if action == "invite_status":
+                _, invitation, record = invitation_access(data.get("token"))
+                self.reply(200, {"status": "redeemed" if record else "ready"})
+                return
+            if action == "redeem":
+                document, filename = redeem_invitation(data)
+                self.reply(200, document, "application/octet-stream",
+                           {"Content-Disposition": f'attachment; filename="{filename}"'})
+                return
             if action == "login":
                 password = data.get("password")
                 if not isinstance(password, str) or len(password.encode()) > 1024:
@@ -378,6 +529,19 @@ class handler(BaseHTTPRequestHandler):
                 return
             if action == "logout":
                 self.reply(200, {"authenticated": False}, headers={"Set-Cookie": session_cookie("", 0)})
+            elif action == "invite_create":
+                self.reply(200, create_invitation(data))
+            elif action == "invites":
+                self.reply(200, {"invitations": invitation_history()})
+            elif action == "invite_revoke":
+                invite_id = canonical_id(data.get("invite_id"))
+                store = record_store()
+                if store.get_named("invitations", invite_id) is None:
+                    self.reply(404, {"error": "That invitation is not in your records."})
+                    return
+                store.create_named("revocations", invite_id, {"invite_id": invite_id,
+                                   "revoked_at": datetime.now(timezone.utc).isoformat(timespec="seconds")})
+                self.reply(200, {"revoked": True})
             elif action == "issue":
                 document, filename = issue_license(data.get("customer"), data.get("request"))
                 save_record(document, "issued")
@@ -404,6 +568,8 @@ class handler(BaseHTTPRequestHandler):
                 self.reply(200, {"record": record_summary(record)})
             else:
                 self.reply(400, {"error": "Unknown action."})
+        except InvitationError as error:
+            self.reply(error.status, {"error": str(error)})
         except ConfigurationError as error:
             self.reply(503, {"error": str(error)})
         except StorageError as error:
@@ -411,4 +577,4 @@ class handler(BaseHTTPRequestHandler):
         except RecordConflict as error:
             self.reply(409, {"error": str(error)})
         except (ValueError, UnicodeError):
-            self.reply(400, {"error": "Check the customer name and complete request code."})
+            self.reply(400, {"error": "Check the name, email address and complete request code."})

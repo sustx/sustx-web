@@ -31,6 +31,19 @@
           <button class="button" type="submit">Generate license <span aria-hidden="true">↓</span></button>
         </form>
         <div id="license-ready" class="license-ready" hidden><span class="status-dot"></span><h2>Ready to send.</h2><p id="license-customer"></p><div class="license-actions"><button id="save-license" class="button" type="button">Download license <span aria-hidden="true">↓</span></button><button id="share-license" class="secondary-button" type="button" hidden>Share file</button></div><p class="field-help">Send the file to this customer. They import it in Parallax.</p></div>
+        <section class="history" aria-labelledby="invitations-title">
+          <div class="section-top"><h2 id="invitations-title">Invitations</h2><span id="invite-count" class="version">Loading…</span></div>
+          <p class="section-note">Send a private link. Each invitation unlocks one computer. Revoking a link does not disable an already issued license.</p>
+          <form id="invite-form" class="admin-form">
+            <label for="invite-email">Recipient email <span class="field-help">(optional)</span></label><input id="invite-email" type="email" autocomplete="off" maxlength="254" placeholder="Leave blank for any recipient">
+            <label for="invite-days">Expires in</label><select id="invite-days"><option value="7">7 days</option><option value="1">1 day</option><option value="30">30 days</option></select>
+            <button class="button" type="submit">Create invitation <span aria-hidden="true">↗</span></button>
+          </form>
+          <div id="invite-ready" class="license-ready" hidden><h3>Ready to share.</h3><label class="search-label" for="invite-link">Private invitation link</label><input id="invite-link" class="history-search" type="text" readonly><button id="copy-invite" class="secondary-button" type="button">Copy link</button><p class="field-help">Copy this link now. For security, the full link is only shown when created.</p></div>
+          <p id="invite-feedback" class="field-help" role="status" aria-live="polite"></p>
+          <button id="refresh-invites" class="secondary-button" type="button">Refresh invitations</button>
+          <div id="invite-list" class="history-list"></div>
+        </section>
         <section class="history" aria-labelledby="history-title">
           <div class="section-top"><h2 id="history-title">Customer records</h2><span id="record-count" class="version">Loading…</span></div>
           <p class="section-note">Licenses you’ve issued. Activation happens offline.</p>

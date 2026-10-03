@@ -9,6 +9,8 @@ let licenseFile = null;
 let records = [];
 let historyLoading = false;
 let historyRefreshPending = false;
+let invitesLoading = false;
+let invitesRefreshPending = false;
 const historyFeedback = document.getElementById('history-feedback');
 
 function showSession(session) {
@@ -26,8 +28,14 @@ function showSession(session) {
     document.getElementById('import-form').reset();
     document.getElementById('import-feedback').textContent = '';
     historyFeedback.textContent = '';
+    document.getElementById('invite-form').reset();
+    document.getElementById('invite-ready').hidden = true;
+    document.getElementById('invite-link').value = '';
+    document.getElementById('invite-list').replaceChildren();
+    document.getElementById('invite-feedback').textContent = '';
   } else {
     refreshHistory();
+    refreshInvites();
   }
 }
 
@@ -120,7 +128,7 @@ function dateLabel(date) {
 
 function renderHistory() {
   const query = document.getElementById('history-search').value.trim().toLowerCase();
-  const matches = records.filter(record => [record.customer, record.machine, record.license_id, record.platform].some(value => value.toLowerCase().includes(query)));
+  const matches = records.filter(record => [record.customer, record.email || '', record.machine, record.license_id, record.platform].some(value => value.toLowerCase().includes(query)));
   const list = document.getElementById('history-list');
   list.replaceChildren();
   document.getElementById('record-count').textContent = `${records.length} ${records.length === 1 ? 'license' : 'licenses'}`;
@@ -135,7 +143,7 @@ function renderHistory() {
     const details = element('details');
     details.append(element('summary', 'License details'));
     const fields = element('dl');
-    for (const [label, value] of [['License ID', record.license_id], ['Computer code', record.machine], ['Added to records', dateLabel(record.recorded_at)], ['Source', record.source === 'imported' ? 'Imported license' : 'License desk']]) {
+    for (const [label, value] of [['Email', record.email || '—'], ['License ID', record.license_id], ['Computer code', record.machine], ['Added to records', dateLabel(record.recorded_at)], ['Source', record.source === 'imported' ? 'Imported license' : record.source === 'invitation' ? 'Invitation unlock' : 'License desk']]) {
       fields.append(element('dt', label), element('dd', value));
     }
     details.append(fields);
@@ -227,3 +235,70 @@ document.getElementById('logout').addEventListener('click', async event => {
     feedback.textContent = error.message;
   }
 })();
+
+async function refreshInvites() {
+  if (!csrf) return;
+  if (invitesLoading) { invitesRefreshPending = true; return; }
+  invitesLoading = true;
+  const tokenAtStart = csrf;
+  const message = document.getElementById('invite-feedback');
+  message.textContent = 'Loading invitations…';
+  try {
+    const result = await (await request({ action: 'invites' })).json();
+    if (csrf !== tokenAtStart) return;
+    const list = document.getElementById('invite-list');
+    list.replaceChildren();
+    document.getElementById('invite-count').textContent = `${result.invitations.length} invitations`;
+    message.textContent = result.invitations.length ? '' : 'No invitations yet.';
+    for (const invite of result.invitations) {
+      const card = element('article', undefined, 'history-record');
+      const header = element('div', undefined, 'section-top');
+      header.append(element('h3', invite.email || 'Any recipient'), element('span', invite.status, 'version invite-state'));
+      card.append(header, element('p', `Created ${dateLabel(invite.created_at)} · Expires ${dateLabel(invite.expires_at)}`, 'field-help'));
+      if (invite.customer) card.append(element('p', `Unlocked by ${invite.customer}`, 'field-help'));
+      if (invite.status === 'ready' || invite.status === 'redeemed') {
+        const revoke = element('button', 'Revoke invitation', 'secondary-button invite-revoke');
+        revoke.type = 'button';
+        revoke.addEventListener('click', async () => {
+          revoke.disabled = true;
+          try {
+            await request({ action: 'invite_revoke', invite_id: invite.invite_id });
+            await refreshInvites();
+          } catch (error) { message.textContent = error.message; }
+          finally { revoke.disabled = false; }
+        });
+        card.append(revoke);
+      }
+      list.append(card);
+    }
+  } catch (error) {
+    if (csrf === tokenAtStart) { message.textContent = error.message; document.getElementById('invite-count').textContent = 'Unavailable'; }
+  } finally {
+    invitesLoading = false;
+    if (invitesRefreshPending) { invitesRefreshPending = false; refreshInvites(); }
+  }
+}
+
+document.getElementById('refresh-invites').addEventListener('click', refreshInvites);
+document.getElementById('invite-form').addEventListener('submit', event => {
+  event.preventDefault();
+  document.getElementById('invite-ready').hidden = true;
+  document.getElementById('invite-link').value = '';
+  busy(event.currentTarget, async () => {
+    const tokenAtStart = csrf;
+    const result = await (await request({ action: 'invite_create', email: document.getElementById('invite-email').value.trim(), days: Number(document.getElementById('invite-days').value) })).json();
+    if (csrf !== tokenAtStart) return;
+    const link = new URL('/parallax/unlock/', location.origin);
+    link.hash = new URLSearchParams({ invite: result.token }).toString();
+    document.getElementById('invite-link').value = link.href;
+    document.getElementById('invite-ready').hidden = false;
+    document.getElementById('invite-form').reset();
+    await refreshInvites();
+  });
+});
+document.getElementById('copy-invite').addEventListener('click', async () => {
+  const input = document.getElementById('invite-link');
+  if (!input.value) return;
+  try { await navigator.clipboard.writeText(input.value); document.getElementById('invite-feedback').textContent = 'Invitation link copied.'; }
+  catch { input.focus(); input.select(); document.getElementById('invite-feedback').textContent = 'Link selected. Copy it to share.'; }
+});

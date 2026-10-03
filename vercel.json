@@ -134,6 +134,19 @@
           "value": "public, max-age=0, must-revalidate"
         }
       ]
+    },
+    {
+      "source": "/parallax/unlock/:path*",
+      "headers": [
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     }
   ],
   "functions": {
@@ -152,6 +165,11 @@
       "source": "/parallax/admin",
       "destination": "/parallax/admin/",
       "permanent": true
+    },
+    {
+      "source": "/parallax/unlock",
+      "destination": "/parallax/unlock/",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -162,6 +180,10 @@
     {
       "source": "/parallax/admin/",
       "destination": "/parallax/admin/index.html"
+    },
+    {
+      "source": "/parallax/unlock/",
+      "destination": "/parallax/unlock/index.html"
     }
   ]
 }
