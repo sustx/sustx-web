@@ -1,4 +1,7 @@
 """HTTP authorization, signing, and native plug-in compatibility with test-only keys."""
+import csv
+import io
+import uuid
 import base64
 import hashlib
 import http.client
@@ -57,6 +60,11 @@ class LicenseApiTests(unittest.TestCase):
         cls.root_patch.stop()
         cls.env.stop()
         cls.temp.cleanup()
+
+    def setUp(self):
+        self.database = patch.dict(os.environ, {"PARALLAX_RECORDS_PATH": str(self.root / (str(uuid.uuid4()) + ".sqlite3"))})
+        self.database.start()
+        self.addCleanup(self.database.stop)
 
     def call(self, data=None, cookie=None, csrf=None, origin=None, raw=None, extra=None):
         headers = {"Origin": origin or self.origin, "Content-Type": "application/json"}
@@ -136,13 +144,64 @@ class LicenseApiTests(unittest.TestCase):
             self.assertEqual(self.issue(cookie, csrf, **change)[0], 400)
         self.assertEqual(self.call(raw="{", cookie=cookie, csrf=csrf)[0], 400)
         self.assertEqual(self.call(raw="[]", cookie=cookie, csrf=csrf)[0], 400)
-        self.assertEqual(self.call(raw="x" * 4097, cookie=cookie, csrf=csrf)[0], 413)
+        self.assertEqual(self.call(raw="x" * (api.MAX_BODY + 1), cookie=cookie, csrf=csrf)[0], 413)
         self.assertEqual(self.call(raw="{}", extra={"Content-Type": "text/plain"})[0], 415)
         with patch.dict(os.environ, {"PARALLAX_SIGNING_KEY_BASE64": "invalid"}):
             self.assertEqual(self.issue(cookie, csrf)[0], 503)
         wrong = Ed25519PrivateKey.generate().private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
         with patch.dict(os.environ, {"PARALLAX_SIGNING_KEY_BASE64": base64.b64encode(wrong).decode()}):
             self.assertEqual(self.issue(cookie, csrf)[0], 503)
+
+    def test_private_persistent_history_download_and_export(self):
+        cookie, csrf = self.login()
+        _, _, document = self.issue(cookie, csrf, customer='=HYPERLINK("test")')
+        payload = api.verify_document(document.decode())
+        license_id = payload["license_id"]
+        for action in ("history", "download", "export", "import"):
+            self.assertEqual(self.call({"action": action}, None, None)[0], 401)
+            self.assertEqual(self.call({"action": action}, cookie, None)[0], 403)
+        records = json.loads(self.call({"action": "history"}, cookie, csrf)[2])["records"]
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["license_id"], license_id)
+        self.assertNotIn("document", records[0])
+        self.assertEqual(api.LocalRecords().get(license_id)["document"].encode(), document)
+        self.assertEqual(self.call({"action": "download", "license_id": license_id}, cookie, csrf)[2], document)
+        exported = self.call({"action": "export"}, cookie, csrf)
+        rows = list(csv.DictReader(io.StringIO(exported[2].decode("utf-8-sig"))))
+        self.assertEqual(rows[0]["customer"], "'" + payload["customer"])
+        self.assertEqual(rows[0]["license_id"], license_id)
+        self.assertEqual(self.call({"action": "download", "license_id": str(uuid.uuid4())}, cookie, csrf)[0], 404)
+
+    def test_import_validates_signature_and_deduplicates(self):
+        cookie, csrf = self.login()
+        document, _ = api.issue_license("Earlier customer", self.request_code)
+        wrapper = json.loads(document)
+        payload = api.verify_document(document.decode())
+        for text in (document.decode(), json.dumps(wrapper), document.decode()):
+            self.assertEqual(self.call({"action": "import", "document": text}, cookie, csrf)[0], 200)
+        records = json.loads(self.call({"action": "history"}, cookie, csrf)[2])["records"]
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["source"], "imported")
+        self.assertEqual(self.call({"action": "download", "license_id": payload["license_id"]}, cookie, csrf)[2], document)
+        altered = dict(wrapper, signature="00" * 64)
+        self.assertEqual(self.call({"action": "import", "document": json.dumps(altered)}, cookie, csrf)[0], 400)
+        payload["customer"] = "Different customer"
+        raw = json.dumps(payload).encode()
+        conflicting = json.dumps({"payload": base64.b64encode(raw).decode(), "signature": self.key.sign(raw).hex()})
+        self.assertEqual(self.call({"action": "import", "document": conflicting}, cookie, csrf)[0], 409)
+        self.assertEqual(len(api.LocalRecords().all()), 1)
+
+    def test_storage_failure_prevents_unrecorded_issuance(self):
+        cookie, csrf = self.login()
+        with patch.object(api, "record_store", side_effect=api.StorageError("Unavailable")):
+            status, headers, body = self.issue(cookie, csrf)
+            self.assertEqual(status, 503)
+            self.assertNotIn("Content-Disposition", headers)
+            self.assertEqual(json.loads(body)["error"], "Unavailable")
+        self.assertEqual(api.LocalRecords().all(), [])
+        with patch.dict(os.environ, {"VERCEL": "1", "BLOB_READ_WRITE_TOKEN": ""}):
+            with self.assertRaises(api.StorageError):
+                api.record_store()
 
     def test_missing_configuration_and_production_cookie(self):
         with patch.dict(os.environ, {"PARALLAX_SESSION_SECRET": ""}):

@@ -1,15 +1,20 @@
 """Owner-only Parallax issuer. Secrets are read from server environment variables."""
 import base64
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+import csv
 from datetime import datetime, timezone
 import hashlib
 import hmac
 from http.cookies import SimpleCookie, CookieError
 from http.server import BaseHTTPRequestHandler
 import json
+import io
 import os
 from pathlib import Path
 import re
 import secrets
+import sqlite3
 import time
 import uuid
 
@@ -20,11 +25,194 @@ ROOT = Path(__file__).resolve().parents[1]
 PRODUCT = "audio.sustx.parallax.beta"  # Existing plug-in protocol ID; never displayed.
 REQUEST = re.compile(r"PLX1-(?:MAC|WIN)-[0-9a-f]{64}\Z")
 SESSION_SECONDS = 8 * 60 * 60
-MAX_BODY = 4096
+MAX_BODY = 24576
+MAX_LICENSE_BYTES = 16384
+RECORD_PREFIX = "parallax/licenses/"
 
 
 class ConfigurationError(Exception):
     pass
+
+
+class StorageError(Exception):
+    pass
+
+
+class RecordConflict(Exception):
+    pass
+
+
+def canonical_id(value):
+    if not isinstance(value, str):
+        raise ValueError("Choose a license from the history.")
+    return str(uuid.UUID(value))
+
+
+def verify_document(document):
+    """Validate archived/imported files against the same identity as the plugin."""
+    if not isinstance(document, str) or len(document.encode()) > MAX_LICENSE_BYTES:
+        raise ValueError("Choose a Parallax license file smaller than 16 KB.")
+    try:
+        wrapper = json.loads(document)
+        payload = base64.b64decode(wrapper["payload"], validate=True)
+        signature = bytes.fromhex(wrapper["signature"])
+        public = bytes.fromhex(json.loads((ROOT / "parallax/release.json").read_text())["public_key"])
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+        Ed25519PublicKey.from_public_bytes(public).verify(signature, payload)
+        data = json.loads(payload)
+        if (data["product"] != PRODUCT or type(data["schema"]) is not int or data["schema"] != 1
+                or data["perpetual"] is not True or not REQUEST.fullmatch(data["machine"])
+                or not isinstance(data["customer"], str) or not data["customer"].strip()
+                or len(data["customer"].encode()) > 160 or any(ord(c) < 32 for c in data["customer"])
+                or canonical_id(data["license_id"]) != data["license_id"]):
+            raise ValueError()
+        issued = datetime.fromisoformat(data["issued_at"])
+        if issued.tzinfo is None:
+            raise ValueError()
+    except Exception:
+        # Do not echo untrusted file contents or signing errors into responses.
+        raise ValueError("This file is not a valid license for the current Parallax release.") from None
+    return data
+
+
+def same_document(first, second):
+    first, second = json.loads(first), json.loads(second)
+    return (base64.b64decode(first["payload"], validate=True) == base64.b64decode(second["payload"], validate=True)
+            and bytes.fromhex(first["signature"]) == bytes.fromhex(second["signature"]))
+
+
+def record_summary(record):
+    return {key: record[key] for key in ("license_id", "customer", "machine", "platform",
+                                       "issued_at", "recorded_at", "source")}
+
+
+class LocalRecords:
+    """Durable local preview/test storage; never used on Vercel."""
+    def __init__(self):
+        self.path = Path(os.environ.get("PARALLAX_RECORDS_PATH", ROOT / ".private/parallax-records.sqlite3"))
+
+    @contextmanager
+    def connection(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        connection = sqlite3.connect(self.path, timeout=10)
+        self.path.chmod(0o600)
+        connection.execute("CREATE TABLE IF NOT EXISTS licenses (id TEXT PRIMARY KEY, record TEXT NOT NULL)")
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
+
+    def get(self, license_id):
+        try:
+            with self.connection() as connection:
+                row = connection.execute("SELECT record FROM licenses WHERE id = ?", (license_id,)).fetchone()
+            return json.loads(row[0]) if row else None
+        except (OSError, sqlite3.Error, ValueError):
+            raise StorageError("Customer records are unavailable. Please try again.") from None
+
+    def save(self, record):
+        try:
+            with self.connection() as connection:
+                connection.execute("INSERT OR IGNORE INTO licenses VALUES (?, ?)",
+                                   (record["license_id"], json.dumps(record)))
+            saved = self.get(record["license_id"])
+            if not same_document(saved["document"], record["document"]):
+                raise RecordConflict("That license ID already belongs to a different file.")
+            return saved
+        except (OSError, sqlite3.Error):
+            raise StorageError("The license could not be saved. Please try again.") from None
+
+    def all(self):
+        try:
+            with self.connection() as connection:
+                rows = connection.execute("SELECT record FROM licenses").fetchall()
+            return [json.loads(row[0]) for row in rows]
+        except (OSError, sqlite3.Error, ValueError):
+            raise StorageError("Customer records are unavailable. Please try again.") from None
+
+
+class PrivateBlobRecords:
+    def __init__(self):
+        if not os.environ.get("BLOB_READ_WRITE_TOKEN"):
+            raise StorageError("Customer record storage has not been configured.")
+
+    def get(self, license_id):
+        from vercel.blob import BlobClient
+        from vercel.blob.errors import BlobNotFoundError
+        try:
+            with BlobClient() as client:
+                result = client.get(RECORD_PREFIX + license_id + ".json", access="private", use_cache=False)
+            return json.loads(result.content)
+        except BlobNotFoundError:
+            return None
+        except Exception:
+            raise StorageError("Customer records are unavailable. Please try again.") from None
+
+    def save(self, record):
+        from vercel.blob import BlobClient
+        existing = self.get(record["license_id"])
+        if existing:
+            if not same_document(existing["document"], record["document"]):
+                raise RecordConflict("That license ID already belongs to a different file.")
+            return existing
+        try:
+            with BlobClient() as client:
+                result = client.put(RECORD_PREFIX + record["license_id"] + ".json",
+                                    json.dumps(record).encode(), access="private", content_type="application/json",
+                                    add_random_suffix=False, overwrite=False)
+                if ".private.blob.vercel-storage.com/" not in result.url:
+                    raise StorageError("Customer storage must be private.")
+        except Exception:
+            # A concurrent, identical import may have won the atomic create.
+            saved = self.get(record["license_id"])
+            if saved and same_document(saved["document"], record["document"]):
+                return saved
+            if saved:
+                raise RecordConflict("That license ID already belongs to a different file.") from None
+            raise StorageError("The license could not be saved. Please try again.") from None
+        return record
+
+    def all(self):
+        from vercel.blob import BlobClient
+        try:
+            with BlobClient() as client:
+                items = list(client.iter_objects(prefix=RECORD_PREFIX, batch_size=1000))
+            ids = [canonical_id(Path(item.pathname).stem) for item in items if item.pathname.endswith(".json")]
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                records = list(pool.map(self.get, ids))
+            return [record for record in records if record is not None]
+        except Exception:
+            raise StorageError("Customer records are unavailable. Please try again.") from None
+
+
+def record_store():
+    return LocalRecords() if local_mode() else PrivateBlobRecords()
+
+
+def save_record(document, source):
+    text = document.decode() if isinstance(document, bytes) else document
+    data = verify_document(text)
+    record = {**{key: data[key] for key in ("license_id", "customer", "machine", "issued_at")},
+              "platform": "macOS" if data["machine"].startswith("PLX1-MAC-") else "Windows",
+              "recorded_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+              "source": source, "document": text}
+    return record_store().save(record)
+
+
+def export_csv(records):
+    output = io.StringIO(newline="")
+    writer = csv.writer(output)
+    keys = ("customer", "license_id", "machine", "platform", "issued_at", "recorded_at", "source")
+    writer.writerow(keys)
+    for record in records:
+        values = []
+        for key in keys:
+            value = str(record[key])
+            # Spreadsheet formula injection must not be possible through names.
+            values.append("'" + value if value.lstrip().startswith(("=", "+", "-", "@")) else value)
+        writer.writerow(values)
+    return ("\ufeff" + output.getvalue()).encode("utf-8")
 
 
 def password_hash(password, salt=None):
@@ -192,11 +380,35 @@ class handler(BaseHTTPRequestHandler):
                 self.reply(200, {"authenticated": False}, headers={"Set-Cookie": session_cookie("", 0)})
             elif action == "issue":
                 document, filename = issue_license(data.get("customer"), data.get("request"))
+                save_record(document, "issued")
                 self.reply(200, document, "application/octet-stream",
                            {"Content-Disposition": f'attachment; filename="{filename}"'})
+            elif action == "history":
+                records = sorted(record_store().all(), key=lambda record: datetime.fromisoformat(record["issued_at"]).timestamp(), reverse=True)
+                self.reply(200, {"records": [record_summary(record) for record in records]})
+            elif action == "download":
+                license_id = canonical_id(data.get("license_id"))
+                record = record_store().get(license_id)
+                if record is None:
+                    self.reply(404, {"error": "That license is not in the history."})
+                    return
+                verify_document(record["document"])
+                self.reply(200, record["document"].encode(), "application/octet-stream",
+                           {"Content-Disposition": f'attachment; filename="Parallax-{license_id}.parallax-license"'})
+            elif action == "export":
+                records = sorted(record_store().all(), key=lambda record: datetime.fromisoformat(record["issued_at"]).timestamp(), reverse=True)
+                self.reply(200, export_csv(records), "text/csv; charset=utf-8",
+                           {"Content-Disposition": 'attachment; filename="Parallax-license-history.csv"'})
+            elif action == "import":
+                record = save_record(data.get("document"), "imported")
+                self.reply(200, {"record": record_summary(record)})
             else:
                 self.reply(400, {"error": "Unknown action."})
         except ConfigurationError as error:
             self.reply(503, {"error": str(error)})
+        except StorageError as error:
+            self.reply(503, {"error": str(error)})
+        except RecordConflict as error:
+            self.reply(409, {"error": str(error)})
         except (ValueError, UnicodeError):
             self.reply(400, {"error": "Check the customer name and complete request code."})

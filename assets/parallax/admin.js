@@ -6,6 +6,10 @@ const feedback = document.getElementById('admin-feedback');
 const ready = document.getElementById('license-ready');
 let csrf = null;
 let licenseFile = null;
+let records = [];
+let historyLoading = false;
+let historyRefreshPending = false;
+const historyFeedback = document.getElementById('history-feedback');
 
 function showSession(session) {
   csrf = session.csrf || null;
@@ -16,6 +20,14 @@ function showSession(session) {
     licenseFile = null;
     ready.hidden = true;
     document.getElementById('issue-form').reset();
+    records = [];
+    document.getElementById('history-list').replaceChildren();
+    document.getElementById('history-search').value = '';
+    document.getElementById('import-form').reset();
+    document.getElementById('import-feedback').textContent = '';
+    historyFeedback.textContent = '';
+  } else {
+    refreshHistory();
   }
 }
 
@@ -72,17 +84,122 @@ document.getElementById('issue-form').addEventListener('submit', event => {
     const share = document.getElementById('share-license');
     share.hidden = !(navigator.canShare && navigator.canShare({ files: [licenseFile] }));
     ready.hidden = false;
+    await refreshHistory();
     ready.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
   });
 });
 
 document.getElementById('save-license').addEventListener('click', () => {
   if (!licenseFile) return;
-  const url = URL.createObjectURL(licenseFile);
+  saveFile(licenseFile);
+});
+
+function saveFile(file) {
+  const url = URL.createObjectURL(file);
   const link = document.createElement('a');
-  link.href = url; link.download = licenseFile.name;
+  link.href = url; link.download = file.name;
   document.body.appendChild(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+async function responseFile(response, fallback) {
+  const name = response.headers.get('Content-Disposition')?.match(/filename="([\w.-]+)"/)?.[1] || fallback;
+  return new File([await response.blob()], name, { type: response.headers.get('Content-Type') || 'application/octet-stream' });
+}
+
+function element(tag, text, className) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  if (className) node.className = className;
+  return node;
+}
+
+function dateLabel(date) {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(date));
+}
+
+function renderHistory() {
+  const query = document.getElementById('history-search').value.trim().toLowerCase();
+  const matches = records.filter(record => [record.customer, record.machine, record.license_id, record.platform].some(value => value.toLowerCase().includes(query)));
+  const list = document.getElementById('history-list');
+  list.replaceChildren();
+  document.getElementById('record-count').textContent = `${records.length} ${records.length === 1 ? 'license' : 'licenses'}`;
+  if (!records.length) historyFeedback.textContent = 'No licenses recorded yet. New licenses are saved here automatically.';
+  else if (!matches.length) historyFeedback.textContent = 'No records match that search.';
+  else historyFeedback.textContent = query ? `${matches.length} matching ${matches.length === 1 ? 'record' : 'records'}.` : '';
+  for (const record of matches) {
+    const card = element('article', undefined, 'history-record');
+    const header = element('div', undefined, 'section-top');
+    header.append(element('h3', record.customer), element('span', record.platform, 'version'));
+    card.append(header, element('p', `Issued ${dateLabel(record.issued_at)}`, 'field-help'));
+    const details = element('details');
+    details.append(element('summary', 'License details'));
+    const fields = element('dl');
+    for (const [label, value] of [['License ID', record.license_id], ['Computer code', record.machine], ['Added to records', dateLabel(record.recorded_at)], ['Source', record.source === 'imported' ? 'Imported license' : 'License desk']]) {
+      fields.append(element('dt', label), element('dd', value));
+    }
+    details.append(fields);
+    const download = element('button', 'Download license ↓', 'secondary-button');
+    download.type = 'button';
+    download.addEventListener('click', async () => {
+      download.disabled = true;
+      try {
+        const response = await request({ action: 'download', license_id: record.license_id });
+        saveFile(await responseFile(response, `Parallax-${record.license_id}.parallax-license`));
+      } catch (error) { historyFeedback.textContent = error.message; }
+      finally { download.disabled = false; }
+    });
+    card.append(details, download);
+    list.append(card);
+  }
+}
+
+async function refreshHistory() {
+  if (!csrf) return;
+  if (historyLoading) { historyRefreshPending = true; return; }
+  historyLoading = true;
+  const tokenAtStart = csrf;
+  historyFeedback.textContent = 'Loading customer records…';
+  try {
+    const response = await request({ action: 'history' });
+    const result = await response.json();
+    if (csrf !== tokenAtStart) return;
+    records = result.records;
+    renderHistory();
+  } catch (error) {
+    if (csrf === tokenAtStart) {
+      historyFeedback.textContent = error.message;
+      document.getElementById('record-count').textContent = 'Unavailable';
+    }
+  } finally {
+    historyLoading = false;
+    if (historyRefreshPending) { historyRefreshPending = false; refreshHistory(); }
+  }
+}
+
+document.getElementById('history-search').addEventListener('input', renderHistory);
+document.getElementById('refresh-history').addEventListener('click', refreshHistory);
+document.getElementById('export-history').addEventListener('click', async event => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  try { saveFile(await responseFile(await request({ action: 'export' }), 'Parallax-license-history.csv')); }
+  catch (error) { historyFeedback.textContent = error.message; }
+  finally { button.disabled = false; }
+});
+
+document.getElementById('import-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const importFeedback = document.getElementById('import-feedback');
+  importFeedback.textContent = '';
+  busy(form, async () => {
+    const file = document.getElementById('import-file').files[0];
+    if (!file || file.size > 16384) throw new Error('Choose a Parallax license file smaller than 16 KB.');
+    const result = await (await request({ action: 'import', document: await file.text() })).json();
+    importFeedback.textContent = `Saved the license for ${result.record.customer}.`;
+    form.reset();
+    await refreshHistory();
+  });
 });
 
 document.getElementById('share-license').addEventListener('click', async () => {
