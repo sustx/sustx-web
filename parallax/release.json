@@ -10,15 +10,15 @@
     },
     "windows": {
       "filename": "Parallax-0.0.0-Windows-x64-Setup.exe",
-      "url": "/downloads/parallax/0.0.0/Parallax-0.0.0-Windows-x64-Setup.exe",
-      "bytes": 4584766,
-      "sha256": "511f3a6832d3c76ae3b7e956194d26855fc2b79378a18aca0db75a52f3e8fec6"
+      "url": "/downloads/parallax/0.0.0/windows-manifest-fix/Parallax-0.0.0-Windows-x64-Setup.exe",
+      "bytes": 4584400,
+      "sha256": "2b0fbf9d31a6975a9d58cca471440c7675325d29363881c5e0a0bf630b8f9481"
     },
     "windows_zip": {
       "filename": "Parallax-0.0.0-Windows-x64-VST3.zip",
-      "url": "/downloads/parallax/0.0.0/Parallax-0.0.0-Windows-x64-VST3.zip",
-      "bytes": 3479119,
-      "sha256": "7c9278e3d26685894c1fc3ed9ec767bf1f0aa22a1dfc0406b85752cf62307bcd"
+      "url": "/downloads/parallax/0.0.0/windows-manifest-fix/Parallax-0.0.0-Windows-x64-VST3.zip",
+      "bytes": 3479567,
+      "sha256": "5f4baa991e21fad0ca74169d32193652e117fe736bf3b5f9acaff824e6c77eeb"
     }
   }
 }
