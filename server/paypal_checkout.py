@@ -433,8 +433,7 @@ class CheckoutService:
         try:
             result = json_request("https://api.resend.com/emails", {
                 "from": sender, "to": [purchase["email"]], "subject": "Your Parallax activation link",
-                "text": f'Hi {purchase["customer"]},\n\nYour Parallax purchase is ready. '
-                        f'You paid ${amount(purchase["price"]["total_cents"])} USD.\n\n'
+                "text": f'Hi {purchase["customer"]},\n\nYour Parallax purchase is ready.\n\n'
                         f'Activate up to {purchase["seats"]} computers and download your licenses here:\n'
                         f'{self.link(purchase["purchase_id"])}\n\n'
                         f'Download Parallax: {self.config["origin"]}/parallax/\n\n'

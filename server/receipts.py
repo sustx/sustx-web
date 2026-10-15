@@ -48,6 +48,7 @@ def render(receipt):
         'title': ParagraphStyle('title', fontName='ReceiptBold', fontSize=31, leading=39, textColor=ink),
         'right': ParagraphStyle('right', fontName='ReceiptBold', fontSize=11, leading=17, alignment=TA_RIGHT, textColor=ink),
     }
+    styles['rightlabel'] = ParagraphStyle('rightlabel', parent=styles['label'], alignment=TA_RIGHT)
     def p(value, style='body'):
         return Paragraph(escape(str(value)), styles[style])
     output = BytesIO()
@@ -67,7 +68,6 @@ def render(receipt):
         canvas.drawPath(path)
         canvas.setFillColor(colors.white)
         canvas.setFont('ReceiptBold',14);canvas.drawString(99,744,'SUSTX AUDIO')
-        canvas.setFont('Receipt',8);canvas.setFillColor(mint);canvas.drawString(99,726,'www.sustx.xyz')
         canvas.setFillColor(mint);canvas.setFont('ReceiptBold',9)
         canvas.drawRightString(564,742,'SANDBOX · TEST PAYMENT' if receipt['mode']=='sandbox' else 'PAID')
         canvas.setStrokeColor(colors.HexColor('#dce4e8'));canvas.line(48,47,564,47)
@@ -82,11 +82,11 @@ def render(receipt):
     story += [p('RECEIPT NUMBER','label'),p(receipt['number'],'small'),Spacer(1,12),
               p('PAID ON','label'),p(paid.strftime('%B %d, %Y · %H:%M UTC')),Spacer(1,22),
               p('BILLED TO','label'),p(receipt['customer']),p(receipt['email']),Spacer(1,24)]
-    table=Table([[p('ITEM','label'),p('QTY','label'),p('AMOUNT','label')],
+    table=Table([[p('ITEM','label'),p('QTY','label'),p('AMOUNT','rightlabel')],
                  [p(receipt['item']+' — '+receipt['description']),p(receipt['quantity']),p(money(receipt['subtotal_cents']),'right')]],
                 colWidths=[376,40,100],hAlign='LEFT')
     table.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),0),
-                               ('RIGHTPADDING',(0,0),(-1,-1),10),('TOPPADDING',(0,0),(-1,-1),10),
+                               ('RIGHTPADDING',(0,0),(-1,-1),10),('RIGHTPADDING',(-1,0),(-1,-1),0),('TOPPADDING',(0,0),(-1,-1),10),
                                ('BOTTOMPADDING',(0,0),(-1,-1),12),('LINEBELOW',(0,0),(-1,0),.6,colors.HexColor('#dce4e8'))]))
     totals=[['Subtotal',money(receipt['subtotal_cents'])]]
     if receipt['discount_cents']:
@@ -97,9 +97,7 @@ def render(receipt):
                                  ('TOPPADDING',(0,0),(-1,-1),8),('BOTTOMPADDING',(0,0),(-1,-1),8),
                                  ('BACKGROUND',(0,-1),(-1,-1),colors.HexColor('#e8f7f4'))]))
     story += [table,Spacer(1,10),KeepTogether([summary]),Spacer(1,24),p('PAYMENT DETAILS','label'),
-              p('Paid via PayPal'),p('Transaction: '+receipt['capture_id'],'small'),p('Order: '+receipt['order_id'],'small'),
-              Spacer(1,26),p('Thank you for choosing Parallax.'),
-              p('Your activation link arrives in a separate email. Keep this receipt for your records.','small')]
+              p('Paid via PayPal'),p('Transaction: '+receipt['capture_id'],'small'),p('Order: '+receipt['order_id'],'small')]
     doc.build(story,onFirstPage=page,onLaterPages=page)
     return output.getvalue()
 
