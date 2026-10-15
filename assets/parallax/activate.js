@@ -41,6 +41,12 @@
     });
     panel.hidden = false;
   }
+  document.getElementById('activation-receipt').addEventListener('click', async event => {
+    const button = event.currentTarget; button.disabled = true; feedback.textContent = '';
+    try { download(await file(await request({action: 'purchase_receipt', token}))); }
+    catch (error) { feedback.textContent = error.message; }
+    finally { button.disabled = false; }
+  });
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (changing) return;

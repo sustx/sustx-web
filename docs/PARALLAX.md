@@ -176,6 +176,7 @@ Keep older releases available if existing links need to continue working.
 ## Verification
 
 ```sh
+python3 -m pip install -r tests/requirements.txt
 python3 -m unittest discover -s tests -v
 PARALLAX_NATIVE_VERIFIER=../vtex/build/license_tests python3 -m unittest discover -s tests -v
 ```

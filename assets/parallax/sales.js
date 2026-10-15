@@ -35,7 +35,7 @@
         node('p', `${row.activated} of ${row.seats} computers activated · Referral: ${row.referral || 'Direct'}`, 'field-help'));
       const details = node('details'); details.append(node('summary', 'Purchase details'));
       const fields = node('dl');
-      for (const [label, value] of [['Purchase ID', row.purchase_id], ['Customer type', 'Paying customer'],
+      for (const [label, value] of [['Receipt', row.receipt_number || 'Available on download'], ['Purchase ID', row.purchase_id], ['Customer type', 'Paying customer'],
         ['List price', money(row.price.subtotal_cents)], ['Discount', `${money(row.price.discount_cents)} · ${row.price.discount_code || 'No code'}`],
         ['Paid', `${money(row.amount_cents)} ${row.currency}`], ['Referral (customer provided)', row.referral || 'Direct'],
         ['PayPal order', row.order_id], ['PayPal capture', row.capture_id], ['PayPal payer ID', row.payer_id || '—'],
@@ -46,12 +46,22 @@
         fields.append(node('dt', label), node('dd', value));
       }
       details.append(fields); card.append(details);
-      for (const [label, action] of [['Copy activation link', 'sale_link'], ['Resend activation email', 'sale_resend']]) {
+      for (const [label, action] of [['Download receipt PDF', 'sale_receipt'], ['Copy activation link', 'sale_link'], ['Resend activation email', 'sale_resend']]) {
         const button = node('button', label, 'secondary-button'); button.type = 'button';
         button.addEventListener('click', async () => {
           button.disabled = true; feedback.textContent = '';
           try {
-            const result = await (await api({action, purchase_id: row.purchase_id})).json();
+            const response = await api({action, purchase_id: row.purchase_id});
+            if (action === 'sale_receipt') {
+              const url = URL.createObjectURL(await response.blob());
+              const link = node('a'); link.href = url;
+              link.download = response.headers.get('Content-Disposition')?.match(/filename="([\w.-]+)"/)?.[1] || 'Parallax-receipt.pdf';
+              document.body.appendChild(link); link.click(); link.remove();
+              setTimeout(() => URL.revokeObjectURL(url), 60000);
+              feedback.textContent = 'Receipt downloaded.';
+              return;
+            }
+            const result = await response.json();
             if (action === 'sale_link') {
               try { await navigator.clipboard.writeText(result.url); feedback.textContent = 'Private activation link copied.'; }
               catch {

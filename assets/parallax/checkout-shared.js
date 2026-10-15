@@ -22,8 +22,8 @@ window.ParallaxPurchase = (() => {
   }
   async function file(response) {
     const filename = response.headers.get('Content-Disposition')?.match(/filename="([\w.-]+)"/)?.[1];
-    if (!filename) throw new Error('The license download was incomplete. Please try again.');
-    return new File([await response.blob()], filename, {type: 'application/octet-stream'});
+    if (!filename) throw new Error('The file download was incomplete. Please try again.');
+    return new File([await response.blob()], filename, {type: response.headers.get('Content-Type') || 'application/octet-stream'});
   }
   function download(file) {
     const url = URL.createObjectURL(file);

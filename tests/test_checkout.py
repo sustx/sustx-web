@@ -218,14 +218,97 @@ class CheckoutTests(unittest.TestCase):
         self.assertEqual(len({result[2] for result in results}), 1)
         self.assertEqual(len(api.record_store().all()), 1)
 
+    def test_receipt_pdf_is_saved_before_email_and_downloaded_byte_identically(self):
+        import base64
+        import hashlib
+        from server import receipts
+        checkout = self.paid(customer='Zoë & <Rivera>', discount_code='TEST10')
+        stored = api.record_store().get_named('receipts', checkout['purchase_id'])
+        self.assertEqual(stored['total_cents'], 4500)
+        self.assertEqual(stored['discount_cents'], 500)
+        self.assertEqual(stored['mode'], 'sandbox')
+        pdf = base64.b64decode(stored['pdf_base64'])
+        self.assertTrue(pdf.startswith(b'%PDF-'))
+        self.assertEqual(hashlib.sha256(pdf).hexdigest(), stored['sha256'])
+        # Text extraction checks the PDF's displayed identity and verified totals.
+        from pypdf import PdfReader
+        text = '\n'.join(page.extract_text() for page in PdfReader(io.BytesIO(pdf)).pages)
+        for expected in ['Zoë & <Rivera>', 'buyer@example.com', '$45.00', '$50.00', '$5.00',
+                         stored['number'], 'TEST RECEIPT', stored['capture_id']]:
+            self.assertIn(expected, text)
+        self.assertNotIn(checkout['token'], text)
+        self.assertEqual(len(self.email_calls), 2)
+        receipt_mail, activation_mail = [entry[0] for entry in self.email_calls]
+        self.assertIn('Thank you', receipt_mail['subject'])
+        self.assertEqual(base64.b64decode(receipt_mail['attachments'][0]['content']), pdf)
+        self.assertIn(checkout['token'], activation_mail['text'])
+        first = self.call({'action': 'purchase_receipt', 'token': checkout['token']})
+        second = self.call({'action': 'purchase_receipt', 'token': checkout['token'], 'amount_cents': 1})
+        self.assertEqual(first[0], 200)
+        self.assertEqual(first[1]['Content-Type'], 'application/pdf')
+        self.assertEqual(first[2], pdf)
+        self.assertEqual(second[2], pdf)
+        self.assertEqual(receipts.render(stored), pdf)
+        cookie, csrf = self.login()
+        owner = self.call({'action': 'sale_receipt', 'purchase_id': checkout['purchase_id']}, cookie, csrf)
+        self.assertEqual(owner[2], pdf)
+        unpaid = self.create()
+        self.json_call({'action': 'purchase_receipt', 'token': unpaid['token']}, 409)
+        self.json_call({'action': 'purchase_receipt', 'token': 'invalid'}, 403)
+
+    def test_receipt_storage_failure_keeps_payment_and_sends_no_email(self):
+        checkout = self.create()
+        order = api.record_store().get_named('purchase_orders', checkout['purchase_id'])
+        self.gateway.orders[order['order_id']]['status'] = 'APPROVED'
+        original = api.LocalRecords.create_named
+        def fail_receipt(store, kind, key, value):
+            if kind == 'receipts':
+                raise api.StorageError('Receipt storage unavailable')
+            return original(store, kind, key, value)
+        with patch.object(api.LocalRecords, 'create_named', new=fail_receipt):
+            self.json_call({'action': 'checkout_capture', 'token': checkout['token']}, 503)
+        self.assertIsNotNone(api.record_store().get_named('payments', checkout['purchase_id']))
+        self.assertEqual(self.email_calls, [])
+        self.json_call({'action': 'checkout_capture', 'token': checkout['token']})
+        self.assertEqual(self.gateway.captures, 1)
+        self.assertEqual(len(self.email_calls), 2)
+        self.assertNotEqual(self.email_calls[0][1]['Idempotency-Key'], self.email_calls[1][1]['Idempotency-Key'])
+
+    def test_failed_receipt_email_blocks_activation_until_retry(self):
+        original = payments.json_request
+        def fail_receipt(url, payload=None, headers=None, **kwargs):
+            if payload and payload.get('attachments'):
+                raise payments.CheckoutError(502, 'Receipt mail unavailable')
+            return original(url, payload, headers, **kwargs)
+        with patch.object(payments, 'json_request', side_effect=fail_receipt):
+            checkout = self.paid()
+        self.assertEqual(len(self.email_calls), 0)
+        self.assertIsNotNone(api.record_store().get_named('receipts', checkout['purchase_id']))
+        self.json_call({'action': 'checkout_capture', 'token': checkout['token']})
+        self.assertEqual(len(self.email_calls), 2)
+        self.assertEqual(self.gateway.captures, 1)
+
+    def test_activation_failure_does_not_resend_receipt_on_retry(self):
+        original = payments.json_request
+        def fail_activation(url, payload=None, headers=None, **kwargs):
+            if payload and not payload.get('attachments'):
+                raise payments.CheckoutError(502, 'Activation mail unavailable')
+            return original(url, payload, headers, **kwargs)
+        with patch.object(payments, 'json_request', side_effect=fail_activation):
+            checkout = self.paid()
+        self.assertEqual(len(self.email_calls), 1)
+        self.json_call({'action': 'checkout_capture', 'token': checkout['token']})
+        self.assertEqual(len(self.email_calls), 2)
+        self.assertNotIn('attachments', self.email_calls[-1][0])
+
     def test_capture_retries_never_charge_or_email_twice(self):
         self.gateway.fail_after_capture = True
         checkout = self.paid()
         self.json_call({'action': 'checkout_capture', 'token': checkout['token']})
         self.assertEqual(self.gateway.captures, 1)
         self.assertEqual(len(api.record_store().list_named('payments')), 1)
-        self.assertEqual(len(self.email_calls), 1)
-        email = self.email_calls[0][0]
+        self.assertEqual(len(self.email_calls), 2)
+        email = self.email_calls[1][0]
         self.assertEqual(email['to'], ['buyer@example.com'])
         self.assertIn('#purchase=' + checkout['token'], email['text'])
         self.assertNotIn('invitation', email['text'].lower())
@@ -279,7 +362,7 @@ class CheckoutTests(unittest.TestCase):
         self.assertIsNone(api.record_store().get_named('payments', checkout['purchase_id']))
         self.assertEqual(send('test-valid')[0], 200)
         self.assertEqual(send('test-valid')[0], 200)
-        self.assertEqual(len(self.email_calls), 1)
+        self.assertEqual(len(self.email_calls), 2)
         self.assertEqual(len(api.record_store().list_named('payment_events')), 1)
 
     def test_recovery_is_generic_throttled_and_preserves_entitlements(self):
@@ -291,14 +374,14 @@ class CheckoutTests(unittest.TestCase):
             known, _ = self.json_call({'action': 'purchase_recover', 'email': 'buyer@example.com'})
             self.json_call({'action': 'purchase_recover', 'email': 'buyer@example.com'})
         self.assertEqual(known, missing)
-        self.assertEqual(len(self.email_calls), 2)
+        self.assertEqual(len(self.email_calls), 3)
         self.assertIn(checkout['token'], self.email_calls[-1][0]['text'])
         self.assertEqual(self.redeem(checkout, self.request_code)[2], before)
         self.assertEqual(len(api.record_store().all()), 1)
 
     def test_owner_sales_and_export_keep_tokens_private_and_escape_csv(self):
         checkout = self.paid(customer='=formula', referral='@referrer', discount_code='TEST10')
-        for action in ['sales', 'sales_export', 'sale_link', 'sale_resend']:
+        for action in ['sales', 'sales_export', 'sale_link', 'sale_resend', 'sale_receipt']:
             self.json_call({'action': action}, 401)
         cookie, csrf = self.login()
         self.json_call({'action': 'sales'}, 403, cookie=cookie)
@@ -331,7 +414,7 @@ class CheckoutTests(unittest.TestCase):
         event = {'id': 'WEBHOOK-EMAIL-RETRY', 'event_type': 'PAYMENT.CAPTURE.COMPLETED',
                  'resource': {'supplementary_data': {'related_ids': {'order_id': order_id}}}}
         api.checkout_service().webhook(event, {'paypal-transmission-sig': 'test-valid'})
-        self.assertEqual(len(self.email_calls), 1)
+        self.assertEqual(len(self.email_calls), 2)
         self.assertEqual(self.gateway.captures, 1)
 
 

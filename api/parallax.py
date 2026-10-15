@@ -484,7 +484,7 @@ def checkout_service():
 
 def sales_csv(rows):
     output = io.StringIO(newline="")
-    keys = ("purchase_id", "customer", "email", "amount_cents", "currency", "paid_at", "referral",
+    keys = ("purchase_id", "receipt_number", "customer", "email", "amount_cents", "currency", "paid_at", "referral",
             "discount_code", "discount_cents", "order_id", "capture_id", "payer_id", "payer_email",
             "payer_country", "paypal_fee_cents", "net_cents", "mode", "seats", "activated")
     writer = csv.writer(output)
@@ -553,7 +553,7 @@ class handler(BaseHTTPRequestHandler):
             if action == "checkout_quote":
                 self.reply(200, {"price": payments.quote(data)})
                 return
-            if action in {"checkout_create", "checkout_resume", "checkout_capture", "purchase_status", "purchase_redeem", "purchase_download", "purchase_recover"}:
+            if action in {"checkout_create", "checkout_resume", "checkout_capture", "purchase_status", "purchase_redeem", "purchase_download", "purchase_recover", "purchase_receipt"}:
                 service = checkout_service()
                 if action == "checkout_resume":
                     cookie = SimpleCookie()
@@ -569,6 +569,9 @@ class handler(BaseHTTPRequestHandler):
                 elif action in {"purchase_redeem", "purchase_download"}:
                     document, filename = service.redeem(data) if action == "purchase_redeem" else service.download(data)
                     self.reply(200, document, "application/octet-stream", {"Content-Disposition": f'attachment; filename="{filename}"'})
+                elif action == "purchase_receipt":
+                    document, filename = service.receipt_download(data)
+                    self.reply(200, document, "application/pdf", {"Content-Disposition": f'attachment; filename="{filename}"'})
                 elif action == "purchase_recover":
                     client = self.client_address[0] if local_mode() else self.headers.get("X-Vercel-Forwarded-For", "unknown").split(",")[0].strip()
                     self.reply(200, service.recovery(data, client))
@@ -616,12 +619,15 @@ class handler(BaseHTTPRequestHandler):
             elif action == "sales_export":
                 self.reply(200, sales_csv(checkout_service().sales()), "text/csv; charset=utf-8",
                            {"Content-Disposition": 'attachment; filename="Parallax-sales.csv"'})
-            elif action in {"sale_link", "sale_resend"}:
+            elif action in {"sale_link", "sale_resend", "sale_receipt"}:
                 service = checkout_service()
                 purchase_id = canonical_id(data.get("purchase_id"))
                 token = service.token(purchase_id)
                 purchase, _ = service.access(token, paid=True)
-                if action == "sale_link":
+                if action == "sale_receipt":
+                    document, filename = service.receipt_download({"token": token})
+                    self.reply(200, document, "application/pdf", {"Content-Disposition": f'attachment; filename="{filename}"'})
+                elif action == "sale_link":
                     self.reply(200, {"url": service.link(purchase_id)})
                 else:
                     self.reply(200, service.recovery({"email": purchase["email"]}, owner=True))

@@ -14,6 +14,8 @@ from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 import uuid
 
+from server import receipts
+
 PRICE_CENTS = 5000
 CURRENCY = "USD"
 SEATS = 2
@@ -21,7 +23,7 @@ TOKEN = re.compile(r"PLXP-([0-9a-f]{32})-([A-Za-z0-9_-]{43})\Z")
 CHECKOUT_KEY = re.compile(r"[0-9a-f]{64}\Z")
 PAYPAL_ID = re.compile(r"[A-Z0-9]{8,64}\Z")
 COLLECTIONS = ("purchases", "purchase_orders", "paypal_order_index", "payments",
-               "payment_events", "email_deliveries", "email_limits")
+               "payment_events", "email_deliveries", "email_limits", "receipts")
 
 
 class CheckoutError(Exception):
@@ -364,7 +366,63 @@ class CheckoutService:
         self.verify(record["document"])
         return record["document"].encode(), f'Parallax-{record["license_id"]}.parallax-license'
 
+    def receipt(self, purchase):
+        saved = self.store.get_named("receipts", purchase["purchase_id"])
+        if saved is not None:
+            return saved
+        payment = self.store.get_named("payments", purchase["purchase_id"])
+        if not payment:
+            raise CheckoutError(409, "A receipt is available after payment is confirmed.")
+        return self.store.create_named("receipts", purchase["purchase_id"], receipts.document(purchase, payment))
+
+    def receipt_download(self, data):
+        purchase, _ = self.access(data.get("token"), paid=True)
+        try:
+            return receipts.download(self.receipt(purchase))
+        except (ValueError, KeyError):
+            raise CheckoutError(503, "Your receipt could not load. Please contact Sustx Audio.") from None
+
+    def send_receipt_email(self, purchase):
+        receipt = self.receipt(purchase)
+        key = identifier(purchase["purchase_id"] + ":email:receipt")
+        if self.store.get_named("email_deliveries", key):
+            return True
+        api_key = self.config["PARALLAX_RESEND_API_KEY"]
+        sender = self.config["PARALLAX_EMAIL_FROM"]
+        if not api_key or not sender:
+            return False
+        sandbox = receipt["mode"] == "sandbox"
+        prefix = "[Sandbox] " if sandbox else ""
+        warning = "TEST PURCHASE — No real money was charged.\n\n" if sandbox else ""
+        try:
+            result = json_request("https://api.resend.com/emails", {
+                "from": sender, "to": [purchase["email"]],
+                "subject": prefix + "Thank you for your purchase — Parallax receipt",
+                "text": f'Hi {purchase["customer"]},\n\n{warning}'
+                        'Thank you for choosing Parallax and supporting Sustx Audio.\n\n'
+                        f'Parallax · Perpetual license · {purchase["seats"]} computer activations\n'
+                        f'Total paid: ${amount(receipt["total_cents"])} {receipt["currency"]} via PayPal\n'
+                        f'Receipt: {receipt["number"]}\n'
+                        f'Payment date: {receipt["paid_at"]}\n'
+                        f'PayPal transaction: {receipt["capture_id"]}\n\n'
+                        'Your PDF receipt is attached. Keep it for your records.\n'
+                        'Your private activation link follows in a separate email.\n\n'
+                        'Enjoy making music.\n\nSustx Audio\nhttps://www.sustx.xyz\n',
+                "attachments": [{"filename": receipt["filename"], "content": receipt["pdf_base64"]}]},
+                {"Authorization": "Bearer " + api_key, "Idempotency-Key": "parallax-" + key})
+            if not isinstance(result.get("id"), str):
+                return False
+            self.store.create_named("email_deliveries", key, {"purchase_id": purchase["purchase_id"],
+                "email": purchase["email"], "sent_at": now(), "message_id": result["id"], "purpose": "receipt",
+                "receipt_number": receipt["number"]})
+            return True
+        except CheckoutError:
+            return False
+
     def send_email(self, purchase, purpose="initial"):
+        # Submit and persist the receipt email before submitting activation mail.
+        if not self.send_receipt_email(purchase):
+            return False
         key = identifier(purchase["purchase_id"] + ":email:" + purpose)
         if self.store.get_named("email_deliveries", key):
             return True
@@ -433,7 +491,7 @@ class CheckoutService:
             raise CheckoutError(409, "Payment environment mismatch.")
         self.settle(purchase, self.gateway.get_order(order_id))
         if not self.send_email(purchase):
-            raise CheckoutError(503, "Activation email delivery is pending. Retry this notification.")
+            raise CheckoutError(503, "Purchase email delivery is pending. Retry this notification.")
         self.store.create_named("payment_events", key, {"event_id": event_id, "event_type": event_type,
             "purchase_id": purchase["purchase_id"], "order_id": order_id, "processed_at": now()})
         return {"received": True}
@@ -441,10 +499,12 @@ class CheckoutService:
     def sales(self):
         purchases = {item["purchase_id"]: item for item in self.store.list_named("purchases")}
         result = []
+        saved_receipts = {item["purchase_id"]: item for item in self.store.list_named("receipts")}
         for payment in self.store.list_named("payments"):
             purchase = purchases[payment["purchase_id"]]
             records = self.activations(purchase)
             result.append({**{key: purchase[key] for key in ("purchase_id", "customer", "email", "created_at", "referral", "seats")},
-                           **payment, "price": purchase["price"], "activated": len(records),
+                           **payment, "receipt_number": saved_receipts.get(purchase["purchase_id"], {}).get("number", ""),
+                           "price": purchase["price"], "activated": len(records),
                            "license_ids": [record["license_id"] for record in records]})
         return sorted(result, key=lambda row: row["paid_at"], reverse=True)

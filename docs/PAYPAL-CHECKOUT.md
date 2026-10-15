@@ -25,7 +25,8 @@ by this change.
 7. Each distinct computer consumes one slot. Reusing that computer's request code
    returns the byte-identical original license. Conditional record creation limits
    concurrent requests to two slots. AU and VST3 share the same Mac request code.
-8. An activation email links back to this page. Customers can copy the private
+8. A thank-you email with a PDF purchase receipt is submitted first. Once the email
+   provider accepts it, a separate activation email links back to this page. Customers can copy the private
    link, email it again, use it on a second computer, or redownload either license.
 
 The email link stores its capability in the URL fragment, which is not sent in
@@ -147,3 +148,32 @@ public key. Connect a separate private Blob store to Preview only, and configure
 separate Preview owner/session secrets. Sandbox licenses cannot unlock the released
 plug-in. Use `https://sustx-parallax-sandbox.vercel.app` as the Preview public origin
 and reassign that alias after each test deployment.
+
+## Purchase receipts
+
+Each verified payment generates one branded PDF receipt with an immutable receipt
+number, paid date, buyer identity, product/quantity, two-computer entitlement,
+subtotal, discount, total/currency, PayPal order and capture references. It uses the
+Sustx Audio identity and website without inventing a registered business address or
+tax identifier. Sandbox documents and receipt emails explicitly identify test
+payments and cannot be used as proof of a real purchase.
+
+A private `receipts` record stores the complete PDF (Base64), its SHA-256, filename,
+content type, and a snapshot of the verified purchase/payment fields. It is saved
+before either email is sent. Subsequent downloads return the stored bytes, even if
+the receipt design or customer-facing settings later change. No activation token
+is placed in the PDF.
+
+The receipt email is submitted before the activation email. If receipt delivery
+fails, activation email submission waits for a capture/webhook retry; the paid
+activation page remains usable. Each email has its own provider idempotency key
+and permanent delivery receipt. Provider acceptance order is enforced; email
+providers can still deliver messages to an inbox out of order. An activation-email
+retry never resends an already accepted receipt. Recovery sends the receipt only
+if it was never accepted, then resends the activation link.
+
+Customers can download their PDF from the private activation page. Owners can
+download it under Paid purchases; sales CSV includes the receipt number. Legacy
+paid purchases get a receipt on their next receipt download or email recovery.
+PDF generation uses ReportLab with packaged fonts. Test-only PDF text extraction
+uses `pypdf` (`pip install -r tests/requirements.txt`).
