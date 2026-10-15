@@ -39,6 +39,16 @@
   const clock = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
   const position = () => playing ? (offset + Math.max(0, context.currentTime - startedAt)) % duration : offset;
 
+  function setAudioSessionType(type) {
+    // iOS otherwise treats Web Audio as ambient sound, which Silent Mode mutes
+    // even while the context clock and the visible playhead keep advancing.
+    try {
+      if (navigator.audioSession) navigator.audioSession.type = type;
+    } catch {
+      // Audio Session is optional; unsupported browsers keep normal playback.
+    }
+  }
+
   function draw() {
     if (!pen) return;
     const width = canvas.clientWidth;
@@ -141,6 +151,7 @@
     playing = false;
     cancelAnimationFrame(frame);
     stopSources();
+    setAudioSessionType('auto');
     updatePlayButton();
     draw();
   }
@@ -158,6 +169,7 @@
     updatePlayButton();
     try {
       if (!Context) throw new Error('Audio unsupported');
+      setAudioSessionType('playback');
       if (!context) {
         context = new Context();
         context.addEventListener('statechange', () => {
@@ -186,6 +198,7 @@
     } catch {
       stopSources();
       playing = false;
+      setAudioSessionType('auto');
       status.textContent = 'The demo couldn’t play. Check your connection and try again.';
     } finally {
       loading = false;

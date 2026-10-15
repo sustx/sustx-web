@@ -209,6 +209,10 @@ The clips loop together, with play/pause and seeking. Both recordings run on
 the same Web Audio clock and switch through a 25 ms gain ramp to avoid clicks.
 Playback starts only after a visitor presses Play. Audio downloads are lazy;
 the initial waveform comes from a small peak-data file.
+On browsers with Audio Session support (including iOS 17+), pressing Play selects
+the `playback` session type so iPhone Silent Mode does not mute the demo. Pause
+or a playback error returns the session to `auto`. Browsers without this API
+continue using standard Web Audio playback.
 
 `assets/parallax/product.css` styles only the public product page.
 `assets/parallax/demo.js` contains the player. The stereo source WAVs are both
