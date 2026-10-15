@@ -4,7 +4,7 @@ import shutil
 
 ROOT = Path(__file__).resolve().parent
 OUTPUT = ROOT / "public"
-FILES = ("index.html", "song.html", "style.6e85a912.css", "data.aa714b12.js")
+FILES = ("favicon.ico", "apple-touch-icon.png", "index.html", "song.html", "style.6e85a912.css", "data.aa714b12.js")
 DIRECTORIES = ("assets", "fonts", "parallax", "downloads")
 
 
