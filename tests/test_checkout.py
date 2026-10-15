@@ -129,6 +129,22 @@ class CheckoutTests(unittest.TestCase):
         with patch.dict(os.environ, {'PARALLAX_DISCOUNT_CODES_JSON': json.dumps({'TOOLOW': {'percent_off': 99}})}):
             self.json_call({'action': 'checkout_quote', 'discount_code': 'TOOLOW'}, 503)
 
+    def test_owner_preflight_checks_webhook_without_enabling_or_creating_orders(self):
+        self.json_call({'action': 'checkout_preflight'}, 401)
+        cookie, csrf = self.login()
+        self.json_call({'action': 'checkout_preflight'}, 403, cookie=cookie)
+        webhook = {'id': 'WEBHOOK12345', 'url': self.origin + '/api/parallax?paypal_webhook=1',
+                   'event_types': [{'name': 'PAYMENT.CAPTURE.COMPLETED'}]}
+        with patch.dict(os.environ, {'PARALLAX_PAYPAL_WEBHOOK_ID': 'WEBHOOK12345', 'PARALLAX_PAYPAL_ENABLED': '0'}):
+            with patch.object(self.gateway, 'request', create=True, return_value=webhook):
+                result, _ = self.json_call({'action': 'checkout_preflight'}, cookie=cookie, csrf=csrf)
+                self.assertTrue(result['paypal_connection'])
+                self.assertNotIn('secret', json.dumps(result))
+                self.assertEqual(self.gateway.create_calls, 0)
+            for changed in [webhook | {'url': 'https://wrong.example/api'}, webhook | {'event_types': []}, webhook | {'id': 'OTHER12345'}]:
+                with patch.object(self.gateway, 'request', create=True, return_value=changed):
+                    self.json_call({'action': 'checkout_preflight'}, 503, cookie=cookie, csrf=csrf)
+
     def test_config_has_no_secrets_and_production_requires_live_email(self):
         config, _ = self.json_call({'action': 'checkout_config'})
         self.assertTrue(config['ready']); self.assertEqual(config['seats'], 2)

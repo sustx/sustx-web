@@ -366,6 +366,26 @@ class CheckoutService:
         self.verify(record["document"])
         return record["document"].encode(), f'Parallax-{record["license_id"]}.parallax-license'
 
+    def preflight(self):
+        """Owner-only read checks; does not create an order or enable checkout."""
+        required = ("PARALLAX_PAYPAL_CLIENT_ID", "PARALLAX_PAYPAL_CLIENT_SECRET",
+                    "PARALLAX_PAYPAL_MERCHANT_ID", "PARALLAX_PAYPAL_WEBHOOK_ID",
+                    "PARALLAX_RESEND_API_KEY", "PARALLAX_EMAIL_FROM")
+        if self.config["mode"] not in {"sandbox", "live"} or not all(self.config[name] for name in required):
+            raise CheckoutError(503, "Payment and email configuration is incomplete.")
+        webhook_id = self.config["PARALLAX_PAYPAL_WEBHOOK_ID"]
+        if not PAYPAL_ID.fullmatch(webhook_id):
+            raise CheckoutError(503, "The PayPal webhook ID is not valid.")
+        webhook = self.gateway.request("GET", "/v1/notifications/webhooks/" + webhook_id)
+        expected_url = self.config["origin"] + "/api/parallax?paypal_webhook=1"
+        events = {item.get("name") for item in webhook.get("event_types", [])}
+        if webhook.get("id") != webhook_id or webhook.get("url") != expected_url or not events.intersection({"PAYMENT.CAPTURE.COMPLETED", "*"}):
+            raise CheckoutError(503, "The PayPal app webhook must match this website and subscribe to completed captures.")
+        self.store.list_named("payments")
+        return {"mode": self.config["mode"], "merchant_id": self.config["PARALLAX_PAYPAL_MERCHANT_ID"],
+                "origin": self.config["origin"], "paypal_connection": True, "webhook": True,
+                "email_configured": True, "private_storage": True}
+
     def receipt(self, purchase):
         saved = self.store.get_named("receipts", purchase["purchase_id"])
         if saved is not None:

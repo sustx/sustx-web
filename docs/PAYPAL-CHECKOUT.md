@@ -177,3 +177,5 @@ download it under Paid purchases; sales CSV includes the receipt number. Legacy
 paid purchases get a receipt on their next receipt download or email recovery.
 PDF generation uses ReportLab with packaged fonts. Test-only PDF text extraction
 uses `pypdf` (`pip install -r tests/requirements.txt`).
+
+Owner-authenticated `checkout_preflight` verifies the PayPal app connection and registered webhook URL/event subscription, checks email configuration presence, and reads private payment storage without enabling checkout or creating a payment order. Calling it also validates the configured license signing key against the release identity. Email delivery still requires an actual send test.

@@ -614,6 +614,8 @@ class handler(BaseHTTPRequestHandler):
                 return
             if action == "logout":
                 self.reply(200, {"authenticated": False}, headers={"Set-Cookie": session_cookie("", 0)})
+            elif action == "checkout_preflight":
+                self.reply(200, checkout_service().preflight())
             elif action == "sales":
                 self.reply(200, {"sales": checkout_service().sales()})
             elif action == "sales_export":
