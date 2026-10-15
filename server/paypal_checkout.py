@@ -129,7 +129,8 @@ def quote(data):
 def json_request(url, payload=None, headers=None, method=None, form=None):
     body = form if form is not None else json.dumps(payload).encode() if payload is not None else None
     request = Request(url, data=body, method=method,
-                      headers={"Accept": "application/json", "Content-Type": "application/json", **(headers or {})})
+                      headers={"Accept": "application/json", "Content-Type": "application/json",
+                               "User-Agent": "Sustx-Parallax/1.0", **(headers or {})})
     try:
         with urlopen(request, timeout=15) as response:
             return json.load(response)

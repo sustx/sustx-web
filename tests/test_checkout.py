@@ -358,6 +358,14 @@ class GatewayContractTests(unittest.TestCase):
         self.assertEqual(experience['return_url'], 'https://example.com/parallax/activate/?checkout=' + purchase_id)
         self.assertNotIn('PLXP-', json.dumps(body))
 
+    def test_provider_requests_use_application_user_agent(self):
+        import io
+        with patch.object(payments, 'urlopen', return_value=io.BytesIO(b'{"id":"test"}')) as request:
+            self.assertEqual(payments.json_request('https://api.resend.com/emails', {'test': True}), {'id': 'test'})
+        outbound = request.call_args.args[0]
+        self.assertEqual(outbound.get_header('User-agent'), 'Sustx-Parallax/1.0')
+        self.assertEqual(json.loads(outbound.data), {'test': True})
+
     def test_real_webhook_verifier_requires_paypal_success_and_configured_webhook_id(self):
         gateway = self.gateway()
         headers = {name: 'test-value' for name in ['paypal-auth-algo', 'paypal-cert-url', 'paypal-transmission-id',
