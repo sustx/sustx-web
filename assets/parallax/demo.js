@@ -22,6 +22,21 @@
     enabled: '/assets/parallax/audio/vocal-delay-enabled-v1.mp3',
   };
   const Context = window.AudioContext || window.webkitAudioContext;
+  // macOS Safari can keep a running Web Audio clock after its output goes
+  // silent. Use its native media output; iOS keeps its working Web Audio path.
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const desktopSafari = /Safari\//.test(navigator.userAgent) &&
+    !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR|Android/.test(navigator.userAgent) && !ios;
+  const media = desktopSafari ? Object.fromEntries(Object.entries(files).map(([key, url]) => {
+    const audio = document.createElement('audio');
+    audio.preload = 'auto'; audio.loop = true; audio.playsInline = true; audio.hidden = true;
+    audio.src = url; audio.volume = key === 'bypass' ? 1 : 0;
+    audio.dataset.demoMode = key;
+    player.append(audio);
+    return [key, audio];
+  })) : null;
+  let fadeFrame;
   let context;
   let buffers;
   let channels = [];
@@ -37,7 +52,8 @@
   let lastSecond = -1;
 
   const clock = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
-  const position = () => playing ? (offset + Math.max(0, context.currentTime - startedAt)) % duration : offset;
+  const position = () => playing ? media ? media[mode].currentTime % duration :
+    (offset + Math.max(0, context.currentTime - startedAt)) % duration : offset;
 
   function setAudioSessionType(type) {
     // iOS otherwise treats Web Audio as ambient sound, which Silent Mode mutes
@@ -118,6 +134,8 @@
   }
 
   function stopSources() {
+    cancelAnimationFrame(fadeFrame);
+    if (media) Object.values(media).forEach(audio => audio.pause());
     channels.forEach(({ source, gain }) => {
       source.stop();
       source.disconnect();
@@ -162,36 +180,77 @@
     return response.arrayBuffer();
   }
 
+  function fadeMedia() {
+    cancelAnimationFrame(fadeFrame);
+    const start = performance.now();
+    const levels = Object.fromEntries(Object.entries(media).map(([key, audio]) => [key, audio.volume]));
+    function step(timestamp) {
+      const progress = Math.min(1, (timestamp - start) / 25);
+      Object.entries(media).forEach(([key, audio]) => {
+        audio.volume = levels[key] + ((key === mode ? 1 : 0) - levels[key]) * progress;
+      });
+      if (progress < 1) fadeFrame = requestAnimationFrame(step);
+    }
+    fadeFrame = requestAnimationFrame(step);
+  }
+
+  async function startMedia() {
+    // Start both during the click, before awaiting metadata or network I/O.
+    // Each element keeps its user-gesture permission for subsequent comparisons.
+    const pending = Object.entries(media).map(([key, audio]) => {
+      if (audio.readyState >= 1) audio.currentTime = offset;
+      else audio.addEventListener('loadedmetadata', () => { audio.currentTime = offset; }, {once: true});
+      audio.volume = key === mode ? 1 : 0;
+      return audio.play();
+    });
+    let timeout;
+    try {
+      await Promise.race([Promise.all(pending), new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(new Error('Audio unavailable')), 30000);
+      })]);
+    } finally { clearTimeout(timeout); }
+    duration = Math.min(...Object.values(media).map(audio => audio.duration));
+    if (!Number.isFinite(duration) || duration <= 0) throw new Error('Audio unavailable');
+    const current = media[mode].currentTime % duration;
+    Object.entries(media).forEach(([key, audio]) => { if (key !== mode) audio.currentTime = current; });
+    total.textContent = clock(Math.ceil(duration));
+    seek.disabled = false;
+  }
+
   async function play() {
     if (loading) return;
     status.textContent = '';
     loading = true;
     updatePlayButton();
     try {
-      if (!Context) throw new Error('Audio unsupported');
+      if (!media && !Context) throw new Error('Audio unsupported');
       setAudioSessionType('playback');
-      if (!context) {
-        context = new Context();
-        context.addEventListener('statechange', () => {
-          if (context.state !== 'running') pause();
-        });
+      if (media) {
+        await startMedia();
+      } else {
+        if (!context) {
+          context = new Context();
+          context.addEventListener('statechange', () => {
+            if (context.state !== 'running') pause();
+          });
+        }
+        // Resume during the click gesture, before waiting for audio downloads.
+        await context.resume();
+        if (!buffers) {
+          const pairs = await Promise.all(Object.entries(files).map(async ([key, url]) => {
+            const buffer = await context.decodeAudioData(await fetchFile(url));
+            return [key, buffer];
+          }));
+          const decoded = Object.fromEntries(pairs);
+          if (Math.abs(decoded.bypass.duration - decoded.enabled.duration) > .05) throw new Error('Audio not aligned');
+          buffers = decoded;
+          duration = Math.min(buffers.bypass.duration, buffers.enabled.duration);
+          total.textContent = clock(Math.ceil(duration));
+          seek.disabled = false;
+        }
+        if (context.state !== 'running') throw new Error('Audio suspended');
+        startSources();
       }
-      // Resume during the click gesture, before waiting for audio downloads.
-      await context.resume();
-      if (!buffers) {
-        const pairs = await Promise.all(Object.entries(files).map(async ([key, url]) => {
-          const buffer = await context.decodeAudioData(await fetchFile(url));
-          return [key, buffer];
-        }));
-        const decoded = Object.fromEntries(pairs);
-        if (Math.abs(decoded.bypass.duration - decoded.enabled.duration) > .05) throw new Error('Audio not aligned');
-        buffers = decoded;
-        duration = Math.min(buffers.bypass.duration, buffers.enabled.duration);
-        total.textContent = clock(Math.ceil(duration));
-        seek.disabled = false;
-      }
-      if (context.state !== 'running') throw new Error('Audio suspended');
-      startSources();
       playing = true;
       lastDraw = 0;
       frame = requestAnimationFrame(animate);
@@ -208,12 +267,18 @@
   }
 
   function selectMode(nextMode) {
+    const current = position();
+    if (media && playing && nextMode !== mode) media[nextMode].currentTime = current;
     mode = nextMode;
     player.dataset.mode = mode;
     bypassButton.setAttribute('aria-pressed', String(mode === 'bypass'));
     enabledButton.setAttribute('aria-pressed', String(mode === 'enabled'));
     state.textContent = mode === 'enabled' ? 'With Parallax' : 'Without Parallax';
     canvas.setAttribute('aria-label', `Waveform of the vocal delay ${mode === 'enabled' ? 'with' : 'without'} Parallax`);
+    if (media) {
+      if (playing) fadeMedia();
+      else Object.entries(media).forEach(([key, audio]) => { audio.volume = key === mode ? 1 : 0; });
+    }
     if (context) {
       const now = context.currentTime;
       channels.forEach(({ key, gain }) => {
@@ -236,16 +301,25 @@
     offset = Math.min(Number(seek.value) / 100 * duration, duration - .01);
     lastSecond = -1;
     if (playing) {
-      stopSources();
-      startSources();
+      if (media) Object.values(media).forEach(audio => { audio.currentTime = offset; });
+      else { stopSources(); startSources(); }
     }
     draw();
+  });
+  if (media) Object.values(media).forEach(audio => {
+    audio.addEventListener('pause', () => { if (playing) pause(); });
+    audio.addEventListener('error', () => {
+      if (playing) {
+        pause();
+        status.textContent = 'The demo couldn’t play. Check your connection and try again.';
+      }
+    });
   });
   window.addEventListener('pagehide', pause);
   if (window.ResizeObserver) new ResizeObserver(draw).observe(canvas);
   else window.addEventListener('resize', draw);
 
-  if (!Context) {
+  if (!media && !Context) {
     playButton.disabled = true;
     playLabel.textContent = 'Audio unavailable';
     status.textContent = 'Try a newer browser to hear the audio demo.';
