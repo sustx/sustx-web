@@ -115,6 +115,16 @@ class CheckoutTests(unittest.TestCase):
         self.assertEqual(response[0], status, response[2].decode(errors='replace'))
         return response
 
+    def test_preview_signing_key_is_required_and_cannot_override_production(self):
+        real_public = api.release_public_key()
+        with patch.dict(os.environ, {'VERCEL_ENV': 'preview', 'PARALLAX_SANDBOX_PUBLIC_KEY': 'a' * 64}):
+            self.assertEqual(api.release_public_key(), 'a' * 64)
+        with patch.dict(os.environ, {'VERCEL_ENV': 'production', 'PARALLAX_SANDBOX_PUBLIC_KEY': 'a' * 64}):
+            self.assertEqual(api.release_public_key(), real_public)
+        with patch.dict(os.environ, {'VERCEL_ENV': 'preview', 'PARALLAX_SANDBOX_PUBLIC_KEY': ''}):
+            with self.assertRaises(api.ConfigurationError):
+                api.release_public_key()
+
     def test_discount_cannot_reduce_total_below_one_dollar(self):
         with patch.dict(os.environ, {'PARALLAX_DISCOUNT_CODES_JSON': json.dumps({'TOOLOW': {'percent_off': 99}})}):
             self.json_call({'action': 'checkout_quote', 'discount_code': 'TOOLOW'}, 503)

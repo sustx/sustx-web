@@ -61,6 +61,15 @@ def canonical_id(value):
     return str(uuid.UUID(value))
 
 
+def release_public_key():
+    if os.environ.get("VERCEL_ENV") == "preview" and os.environ.get("PARALLAX_PAYPAL_ENV") == "sandbox":
+        public = os.environ.get("PARALLAX_SANDBOX_PUBLIC_KEY", "")
+        if not re.fullmatch(r"[0-9a-f]{64}", public):
+            raise ConfigurationError("Sandbox license signing has not been configured.")
+        return public
+    return json.loads((ROOT / "parallax/release.json").read_text())["public_key"]
+
+
 def verify_document(document):
     """Validate archived/imported files against the same identity as the plugin."""
     if not isinstance(document, str) or len(document.encode()) > MAX_LICENSE_BYTES:
@@ -69,7 +78,7 @@ def verify_document(document):
         wrapper = json.loads(document)
         payload = base64.b64decode(wrapper["payload"], validate=True)
         signature = bytes.fromhex(wrapper["signature"])
-        public = bytes.fromhex(json.loads((ROOT / "parallax/release.json").read_text())["public_key"])
+        public = bytes.fromhex(release_public_key())
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
         Ed25519PublicKey.from_public_bytes(public).verify(signature, payload)
         data = json.loads(payload)
@@ -354,7 +363,7 @@ def signing_key():
     try:
         pem = base64.b64decode(os.environ["PARALLAX_SIGNING_KEY_BASE64"], validate=True)
         key = serialization.load_pem_private_key(pem, password=None)
-        expected = json.loads((ROOT / "parallax/release.json").read_text())["public_key"]
+        expected = release_public_key()
         if not isinstance(key, Ed25519PrivateKey):
             raise ValueError()
         actual = key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()

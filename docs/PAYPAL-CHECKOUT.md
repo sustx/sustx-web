@@ -137,3 +137,13 @@ policy or revoke already-issued offline licenses.
 References: [PayPal Orders integration](https://developer.paypal.com/checkout/put-it-all-together/),
 [PayPal webhook verification](https://developer.paypal.com/api/rest/webhooks/rest/),
 [Resend email API](https://resend.com/docs/api-reference/emails/send-email).
+
+## Isolated hosted sandbox
+
+Preview sandbox deployments require `PARALLAX_SANDBOX_PUBLIC_KEY` and a matching
+Preview-only `PARALLAX_SIGNING_KEY_BASE64`, unrelated to the release signing key.
+Production always uses the release manifest public key and ignores the sandbox
+public key. Connect a separate private Blob store to Preview only, and configure
+separate Preview owner/session secrets. Sandbox licenses cannot unlock the released
+plug-in. Use `https://sustx-parallax-sandbox.vercel.app` as the Preview public origin
+and reassign that alias after each test deployment.
