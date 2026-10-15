@@ -1,24 +1,18 @@
 {
-  "version": "0.0.0",
+  "version": "1.0.1",
   "public_key": "f0609527f99186525a6d3e5b26138f1f5ca51786141866a2abd4eb13ad877c54",
   "files": {
     "mac": {
-      "filename": "Parallax-0.0.0-macOS.pkg",
-      "url": "/downloads/parallax/0.0.0/Parallax-0.0.0-macOS.pkg",
-      "bytes": 13036847,
-      "sha256": "d4b47fef44e4e24d41115eb5d16e6d787bc14baf2b9551a4793d795af06ce473"
+      "filename": "Parallax-1.0.1-macOS.pkg",
+      "url": "/downloads/parallax/1.0.1/Parallax-1.0.1-macOS.pkg",
+      "bytes": 13036361,
+      "sha256": "b78b1c2e081585fbca81360b6afb6deb12b7c279bd348017b358e19fec17f1b1"
     },
     "windows": {
-      "filename": "Parallax-0.0.0-Windows-x64-Setup.exe",
-      "url": "/downloads/parallax/0.0.0/windows-manifest-fix/Parallax-0.0.0-Windows-x64-Setup.exe",
-      "bytes": 4584400,
-      "sha256": "2b0fbf9d31a6975a9d58cca471440c7675325d29363881c5e0a0bf630b8f9481"
-    },
-    "windows_zip": {
-      "filename": "Parallax-0.0.0-Windows-x64-VST3.zip",
-      "url": "/downloads/parallax/0.0.0/windows-manifest-fix/Parallax-0.0.0-Windows-x64-VST3.zip",
-      "bytes": 3479567,
-      "sha256": "5f4baa991e21fad0ca74169d32193652e117fe736bf3b5f9acaff824e6c77eeb"
+      "filename": "Parallax-1.0.1-Windows-x64-Setup.exe",
+      "url": "/downloads/parallax/1.0.1/Parallax-1.0.1-Windows-x64-Setup.exe",
+      "bytes": 4611724,
+      "sha256": "812c3ceb097d945faa7796f45c31f6078935361ba4a5cf0f820befb226ae2620"
     }
   }
 }

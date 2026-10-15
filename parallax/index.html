@@ -5,34 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Parallax by Sustx Audio. Place sounds from front to back in your mix. Download for macOS and Windows.">
   <title>Parallax · Sustx Audio</title>
-  <link rel="icon" href="/assets/favicon-v2.png">
+  <link rel="icon" type="image/png" sizes="128x128" href="/assets/parallax/favicon-v3.png">
   <link rel="stylesheet" href="/assets/parallax/site.css">
+  <link rel="stylesheet" href="/assets/parallax/product.css">
   <script src="/assets/parallax/downloads.js" defer></script>
+  <script src="/assets/parallax/demo.js" defer></script>
 </head>
 <body>
   <div class="page">
-    <header class="masthead"><a href="/" class="brand">SUSTX <span>AUDIO</span></a><span class="edition">A little room. A little distance.</span></header>
+    <header class="masthead"><a href="/" class="brand">SUSTX <span>AUDIO</span></a><button class="buy-button" type="button" disabled aria-label="Buy Parallax — purchasing coming soon" title="Purchasing coming soon">Buy Parallax <span aria-hidden="true">↗</span></button></header>
     <main>
       <section class="hero" aria-labelledby="title">
-        <div class="eyebrow"><span class="status-dot"></span> FRONT-TO-BACK PLACEMENT</div>
         <h1 id="title">PARALLAX<span class="title-dot">.</span></h1>
         <p class="intro">Find its place.<br><span>Give your sound some distance.</span></p>
         <p class="description">Move a sound forward or back in your mix. Pick a space, shape its tone and width, and put it right where it belongs.</p>
         <div class="plugin-frame"><picture><source media="(prefers-reduced-motion: reduce)" srcset="/assets/parallax/plugin-hd-v1.png"><source type="image/webp" srcset="/assets/parallax/plugin-motion-v1.webp"><img src="/assets/parallax/plugin-motion-v1.gif" width="1524" height="600" fetchpriority="high" alt="Parallax interface with gently moving reflections, depth fixed at 100, Studio selected, and output at 0.00 dB"></picture><span class="frame-caption">A SMALL WINDOW. A DIFFERENT PERSPECTIVE.</span></div>
       </section>
+      <section class="audio-demo" aria-labelledby="demo-title">
+        <div class="section-top"><h2 id="demo-title">Hear the difference.</h2></div>
+        <p class="section-note">Play the vocal delay. Switch Parallax in and out while you listen.</p>
+        <div class="demo-player" id="demo-player" data-mode="bypass">
+          <div class="demo-track">
+            <span class="demo-kicker">01 / VOCALS</span>
+            <h3>Vocal delay</h3>
+            <p>A little distance.<br>A different place in the mix.</p>
+            <button type="button" class="demo-play" id="demo-play" aria-label="Play vocal delay demo">
+              <svg class="demo-play-icon" id="demo-play-icon" width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5 3.5v13l11-6.5z"/></svg>
+              <svg class="demo-play-icon" id="demo-pause-icon" width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" hidden><path d="M5 4h3.5v12H5zm6.5 0H15v12h-3.5z"/></svg>
+              <span id="demo-play-label">Play demo</span>
+            </button>
+          </div>
+          <div class="demo-comparison">
+            <div class="demo-display-top"><span class="demo-state" id="demo-state" aria-live="polite">Without Parallax</span><span class="demo-loop">14.8 SEC / LOOP</span></div>
+            <div class="demo-waveform"><canvas id="demo-waveform" role="img" aria-label="Waveform of the vocal delay without Parallax">Vocal delay waveform</canvas></div>
+            <div class="demo-timeline">
+              <span id="demo-elapsed" aria-hidden="true">0:00</span>
+              <input id="demo-seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="Demo position" aria-valuetext="0 seconds" disabled>
+              <span id="demo-duration" aria-hidden="true">0:15</span>
+            </div>
+            <div class="demo-switch" role="group" aria-label="Compare Parallax bypass and enabled">
+              <button type="button" id="demo-bypass" aria-pressed="true">Bypass</button>
+              <button type="button" id="demo-enabled" aria-pressed="false">Enabled</button>
+            </div>
+          </div>
+          <p class="demo-status" id="demo-status" role="status" aria-live="polite"></p>
+        </div>
+        <noscript><p class="section-note">Enable JavaScript to play and compare the audio demo.</p></noscript>
+      </section>
       <section class="downloads" aria-labelledby="download-title">
         <div class="section-top"><h2 id="download-title">Make some space.</h2><span class="version" id="release-version">Loading release…</span></div>
-        <p class="section-note">Choose your system. Close your DAW before installing.</p>
+        <p class="section-note">Choose your system.</p>
         <div class="download-grid">
-          <article class="download-card"><span class="platform-icon" aria-hidden="true">⌘</span><h3>macOS</h3><p>Audio Unit + VST3<br>Apple Silicon &amp; Intel · macOS 11+</p><a id="mac-download" class="button" aria-disabled="true">Download for Mac <span aria-hidden="true">↗</span></a><span class="file-note" id="mac-size">.pkg installer</span></article>
-          <article class="download-card"><span class="platform-icon windows-icon" aria-hidden="true">⊞</span><h3>Windows</h3><p>VST3 · 64-bit<br>Windows 10 (1607+) &amp; Windows 11</p><a id="windows-download" class="button" aria-disabled="true">Download for Windows <span aria-hidden="true">↗</span></a><span class="file-note" id="windows-size">.exe installer</span></article>
+          <article class="download-card"><span class="platform-icon" aria-hidden="true">⌘</span><h3>macOS</h3><p>Audio Unit + VST3<br>Apple Silicon &amp; Intel · macOS 11+</p><a id="mac-download" class="button" aria-disabled="true">Download for Mac <span aria-hidden="true">↗</span></a></article>
+          <article class="download-card"><span class="platform-icon windows-icon" aria-hidden="true">⊞</span><h3>Windows</h3><p>VST3 · 64-bit<br>Windows 10 (1607+) &amp; Windows 11</p><a id="windows-download" class="button" aria-disabled="true">Download for Windows <span aria-hidden="true">↗</span></a></article>
         </div>
         <p id="download-error" class="feedback" role="status"></p>
-      </section>
-      <section class="unlock" aria-labelledby="unlock-title">
-        <div><div class="eyebrow">ONE UNLOCK. THEN MAKE MUSIC.</div><h2 id="unlock-title">Your copy, ready to go.</h2><p class="section-note">You’ll need a license from Sustx Audio to use the effect.</p><a class="secondary-button unlock-link" href="/parallax/unlock/">Unlock Parallax ↗</a></div>
-        <ol class="steps"><li><span class="step-number">01</span><div><h3>Open Parallax</h3><p>Restart your DAW after installation, rescan your plugins, and open Parallax.</p></div></li><li><span class="step-number">02</span><div><h3>Send your code</h3><p>Click <strong>Copy request code</strong>. Send that code and your name to the person who shared this page with you.</p></div></li><li><span class="step-number">03</span><div><h3>Import your license</h3><p>When you receive your <strong>.parallax-license</strong> file, click <strong>Import license…</strong> in the plugin. You’re ready to go.</p></div></li></ol>
-        <p class="fine-print">Your license unlocks one computer and works offline. Using a Mac and a Windows computer? Send a code for each.</p>
       </section>
     </main>
     <footer><span>Made by Sustx Audio.</span><a href="/">Back to Sustancia ‘X’ <span aria-hidden="true">↗</span></a></footer>

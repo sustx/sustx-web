@@ -167,7 +167,7 @@ creation in the plugin project, run:
 python3 scripts/sync_parallax.py ../vtex
 ```
 
-The script copies only the Mac installer, Windows installer and Windows VST3 ZIP,
+The script copies only the Mac installer and Windows installer,
 then updates the public release manifest with version, size, SHA-256 and public
 verification key. It never copies the private key. Downloads use versioned URLs
 with immutable caching; reusing a version for a different binary is refused.
@@ -185,8 +185,8 @@ web-issued fixture through the real native plugin verifier. It does not read the
 production private key or alter the locally saved plugin license.
 
 The public download page currently offers only the Mac and Windows installers.
-The Windows VST3 ZIP is retained among release artifacts for future use, without
-a link on the public page.
+The current release manifest and sync process use only those two installers;
+a Windows VST3 ZIP is not required.
 
 ## Website interface preview
 
@@ -196,3 +196,27 @@ the reflection field and eases back to its starting state for a seamless loop.
 Browsers receive a smaller animated WebP where supported, with a GIF fallback.
 Visitors with reduced motion enabled receive the high-resolution still instead.
 The versioned preview filenames avoid cached copies of the earlier screenshot.
+
+## Public product page and audio demo
+
+The landing page includes a top-right **Buy Parallax** button, currently disabled
+until checkout is configured. The public unlock walkthrough is removed from
+this page; existing invitation and owner routes continue to work.
+
+Below the product image, a vocal-delay demo compares the supplied dry recording
+(Bypass) and wet recording (Enabled). Press Play, then switch the two modes.
+The clips loop together, with play/pause and seeking. Both recordings run on
+the same Web Audio clock and switch through a 25 ms gain ramp to avoid clicks.
+Playback starts only after a visitor presses Play. Audio downloads are lazy;
+the initial waveform comes from a small peak-data file.
+
+`assets/parallax/product.css` styles only the public product page.
+`assets/parallax/demo.js` contains the player. The stereo source WAVs are both
+14.769252 seconds long at 44.1 kHz; browser assets are 320 kbps MP3s under
+`assets/parallax/audio/`, with their original relative levels preserved.
+The waveform uses a shared amplitude scale for both versions. When replacing
+the example, export aligned, equal-length files and regenerate the peak data
+from the encoded audio. Use new filenames to avoid cached audio from older demos.
+
+Installer download buttons still use `parallax/release.json`. File type and
+size captions are omitted from the download cards.
