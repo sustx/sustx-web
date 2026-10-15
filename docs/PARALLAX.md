@@ -199,8 +199,8 @@ The versioned preview filenames avoid cached copies of the earlier screenshot.
 
 ## Public product page and audio demo
 
-The landing page includes a top-right **Buy Parallax** button, currently disabled
-until checkout is configured. The public unlock walkthrough is removed from
+The landing page includes a top-right **Buy Parallax** button, enabled automatically
+when the PayPal checkout is configured and explicitly enabled. The public unlock walkthrough is removed from
 this page; existing invitation and owner routes continue to work.
 
 Below the product image, a vocal-delay demo compares the supplied dry recording
@@ -224,3 +224,10 @@ from the encoded audio. Use new filenames to avoid cached audio from older demos
 
 Installer download buttons still use `parallax/release.json`. File type and
 size captions are omitted from the download cards.
+
+## Paid checkout and two-computer activations
+
+See [PayPal checkout](PAYPAL-CHECKOUT.md) for the purchase sequence, required server
+settings, activation-email delivery, two-computer entitlements, discount/referral
+fields, purchase records, and link recovery. Existing invitation-based unlocks
+continue to use `/parallax/unlock/`; paying customers use `/parallax/activate/`.

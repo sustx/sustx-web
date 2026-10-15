@@ -15,6 +15,8 @@ const historyFeedback = document.getElementById('history-feedback');
 
 function showSession(session) {
   csrf = session.csrf || null;
+  window.parallaxOwnerSession = session;
+  window.dispatchEvent(new CustomEvent('parallax-session', {detail: session}));
   loginPanel.hidden = session.authenticated;
   issuerPanel.hidden = !session.authenticated;
   document.getElementById('loading').hidden = true;
@@ -143,7 +145,7 @@ function renderHistory() {
     const details = element('details');
     details.append(element('summary', 'License details'));
     const fields = element('dl');
-    for (const [label, value] of [['Email', record.email || '—'], ['License ID', record.license_id], ['Computer code', record.machine], ['Added to records', dateLabel(record.recorded_at)], ['Source', record.source === 'imported' ? 'Imported license' : record.source === 'invitation' ? 'Invitation unlock' : 'License desk']]) {
+    for (const [label, value] of [['Email', record.email || '—'], ['License ID', record.license_id], ['Computer code', record.machine], ['Added to records', dateLabel(record.recorded_at)], ['Source', record.source === 'purchase' ? 'Paid purchase' : record.source === 'imported' ? 'Imported license' : record.source === 'invitation' ? 'Invitation unlock' : 'License desk'], ...(record.purchase_id ? [['Purchase ID', record.purchase_id], ['Computer slot', `${record.seat} of 2`], ['Amount paid', `${(record.amount_cents / 100).toFixed(2)} ${record.currency}`], ['Referral', record.referral || 'Direct'], ['Discount code', record.discount_code || '—']] : [])]) {
       fields.append(element('dt', label), element('dd', value));
     }
     details.append(fields);

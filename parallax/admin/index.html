@@ -7,7 +7,9 @@
   <title>Parallax licenses · Sustx Audio</title>
   <link rel="icon" href="/assets/favicon-v2.png">
   <link rel="stylesheet" href="/assets/parallax/site.css">
+  <link rel="stylesheet" href="/assets/parallax/checkout.css">
   <script src="/assets/parallax/admin.js" defer></script>
+  <script src="/assets/parallax/sales.js" defer></script>
 </head>
 <body class="admin-body">
   <div class="page admin-page">
@@ -31,6 +33,15 @@
           <button class="button" type="submit">Generate license <span aria-hidden="true">↓</span></button>
         </form>
         <div id="license-ready" class="license-ready" hidden><span class="status-dot"></span><h2>Ready to send.</h2><p id="license-customer"></p><div class="license-actions"><button id="save-license" class="button" type="button">Download license <span aria-hidden="true">↓</span></button><button id="share-license" class="secondary-button" type="button" hidden>Share file</button></div><p class="field-help">Send the file to this customer. They import it in Parallax.</p></div>
+        <section class="history" aria-labelledby="sales-title">
+          <div class="section-top"><h2 id="sales-title">Paid purchases</h2><span id="sale-count" class="version">Loading…</span></div>
+          <p class="section-note">Verified payments, customer details, discounts, referrals, and computer activations.</p>
+          <p id="sales-summary" class="sales-summary"></p>
+          <div class="history-tools"><button id="refresh-sales" class="secondary-button" type="button">Refresh sales</button><button id="export-sales" class="secondary-button" type="button">Export sales CSV</button></div>
+          <label for="sales-search" class="search-label">Find a customer, referral, or payment</label><input id="sales-search" class="history-search" type="search" autocomplete="off" placeholder="Name, email, referral, or PayPal reference">
+          <p id="sales-feedback" class="field-help" role="status" aria-live="polite"></p>
+          <div id="sales-list" class="history-list"></div>
+        </section>
         <section class="history" aria-labelledby="invitations-title">
           <div class="section-top"><h2 id="invitations-title">Invitations</h2><span id="invite-count" class="version">Loading…</span></div>
           <p class="section-note">Send a private link. Each invitation unlocks one computer. Revoking a link does not disable an already issued license.</p>

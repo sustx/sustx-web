@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+  <title>Activate Parallax · Sustx Audio</title>
+  <link rel="icon" type="image/png" href="/assets/parallax/favicon-v3.png">
+  <link rel="stylesheet" href="/assets/parallax/site.css"><link rel="stylesheet" href="/assets/parallax/checkout.css">
+  <script src="/assets/parallax/checkout-shared.js" defer></script><script src="/assets/parallax/activate.js" defer></script>
+</head>
+<body><div class="page admin-page">
+  <header class="masthead"><a href="/parallax/" class="brand">SUSTX <span>AUDIO</span></a><span class="edition">YOUR PARALLAX</span></header>
+  <main class="admin-main">
+    <div class="eyebrow">PARALLAX</div><h1 class="admin-title">Your sound awaits<span class="title-dot">.</span></h1>
+    <p id="activation-loading" class="section-note" role="status">Checking your purchase…</p>
+    <p id="activation-feedback" class="feedback" role="status" aria-live="polite"></p>
+    <section id="activation-panel" hidden>
+      <p id="activation-sandbox" class="purchase-notice" hidden>Sandbox purchase · These test licenses do not activate the released plug-in.</p>
+      <p class="section-note">Your purchase is ready. Activate up to two computers here, and return whenever you need your license files.</p>
+      <dl class="activation-info"><div><dt>Name</dt><dd id="activation-name"></dd></div><div><dt>Email</dt><dd id="activation-email"></dd></div><div><dt>Paid</dt><dd id="activation-paid"></dd></div><div><dt>Computers</dt><dd id="activation-seats"></dd></div></dl>
+      <div class="purchase-links"><a id="activation-mac" class="secondary-button" aria-disabled="true">Download for Mac ↗</a><a id="activation-windows" class="secondary-button" aria-disabled="true">Download for Windows ↗</a></div>
+      <form id="activation-form" class="admin-form">
+        <label for="activation-request">Plugin request code</label><textarea id="activation-request" rows="3" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="128" placeholder="Paste your PLX1-MAC-… or PLX1-WIN-… code" required></textarea>
+        <p class="field-help">Install Parallax, open it in your DAW, and click Copy request code. Paste that code here to activate this computer.</p>
+        <button class="button" type="submit">Activate this computer <span aria-hidden="true">↓</span></button>
+      </form>
+      <section id="activation-licenses" class="activation-section" hidden aria-labelledby="activation-files-title"><h2 id="activation-files-title">Your license files</h2><p class="field-help">Download the file for your computer, then choose Import license… in Parallax.</p><div id="activation-license-list"></div></section>
+      <section class="activation-section" aria-labelledby="activation-link-title"><h2 id="activation-link-title">Keep your way back.</h2><p class="purchase-help">This private link is yours. Open it on your second computer to activate it, or return to download either license again.</p><div class="purchase-links"><button id="activation-copy" class="secondary-button" type="button">Copy activation link</button><button id="activation-resend" class="secondary-button" type="button">Email this link</button></div><p class="purchase-help activation-link">Lost your email? <a href="/parallax/recover/">Recover your activation link ↗</a></p></section>
+    </section>
+    <p id="activation-recovery" class="purchase-help" hidden><a href="/parallax/recover/">Email me my activation link ↗</a></p>
+    <noscript><p>Enable JavaScript to activate Parallax.</p></noscript>
+  </main><footer><span>Sustx Audio</span><a href="/parallax/">Back to Parallax ↗</a></footer>
+</div></body></html>

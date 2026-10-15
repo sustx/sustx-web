@@ -17,6 +17,9 @@ import secrets
 import sqlite3
 import time
 import uuid
+from urllib.parse import parse_qs, urlsplit
+
+from server import paypal_checkout as payments
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -30,6 +33,7 @@ MAX_LICENSE_BYTES = 16384
 RECORD_PREFIX = "parallax/licenses/"
 COLLECTIONS = {"licenses": RECORD_PREFIX, "invitations": "parallax/invitations/",
                "revocations": "parallax/invitation-revocations/"}
+COLLECTIONS.update({kind: "parallax/" + kind.replace("_", "-") + "/" for kind in payments.COLLECTIONS})
 INVITE_TOKEN = re.compile(r"PLXI-([0-9a-f]{32})-([A-Za-z0-9_-]{43})\Z")
 
 
@@ -92,7 +96,8 @@ def same_document(first, second):
 
 def record_summary(record):
     return {key: record.get(key, "") for key in ("license_id", "customer", "email", "machine", "platform",
-                                                "issued_at", "recorded_at", "source", "invite_id")}
+                                                "issued_at", "recorded_at", "source", "invite_id", "purchase_id",
+                                                "seat", "amount_cents", "currency", "discount_code", "referral")}
 
 
 class LocalRecords:
@@ -264,7 +269,8 @@ def save_record(document, source):
 def export_csv(records):
     output = io.StringIO(newline="")
     writer = csv.writer(output)
-    keys = ("customer", "email", "license_id", "machine", "platform", "issued_at", "recorded_at", "source", "invite_id")
+    keys = ("customer", "email", "license_id", "machine", "platform", "issued_at", "recorded_at", "source", "invite_id",
+            "purchase_id", "seat", "amount_cents", "currency", "discount_code", "referral")
     writer.writerow(keys)
     for record in records:
         values = []
@@ -344,14 +350,7 @@ def session_cookie(token, max_age=SESSION_SECONDS):
     return f"{cookie_name()}={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age={max_age}{secure}"
 
 
-def issue_license(customer, request, license_id=None, issued_at=None):
-    if not isinstance(customer, str) or not isinstance(request, str):
-        raise ValueError("Enter a customer name and the complete request code.")
-    customer, request = customer.strip(), request.strip()
-    if not customer or len(customer.encode("utf-8")) > 160 or any(ord(c) < 32 for c in customer):
-        raise ValueError("Use a name up to 160 UTF-8 bytes, without line breaks.")
-    if not REQUEST.fullmatch(request):
-        raise ValueError("Copy the complete PLX1-MAC-… or PLX1-WIN-… code from Parallax.")
+def signing_key():
     try:
         pem = base64.b64decode(os.environ["PARALLAX_SIGNING_KEY_BASE64"], validate=True)
         key = serialization.load_pem_private_key(pem, password=None)
@@ -363,6 +362,18 @@ def issue_license(customer, request, license_id=None, issued_at=None):
             raise ValueError()
     except (KeyError, ValueError, OSError, TypeError):
         raise ConfigurationError("License signing is not configured for this release.") from None
+    return key
+
+
+def issue_license(customer, request, license_id=None, issued_at=None):
+    if not isinstance(customer, str) or not isinstance(request, str):
+        raise ValueError("Enter a customer name and the complete request code.")
+    customer, request = customer.strip(), request.strip()
+    if not customer or len(customer.encode("utf-8")) > 160 or any(ord(c) < 32 for c in customer):
+        raise ValueError("Use a name up to 160 UTF-8 bytes, without line breaks.")
+    if not REQUEST.fullmatch(request):
+        raise ValueError("Copy the complete PLX1-MAC-… or PLX1-WIN-… code from Parallax.")
+    key = signing_key()
     license_id = license_id or str(uuid.uuid4())
     payload = json.dumps({"schema": 1, "product": PRODUCT, "license_id": license_id,
                           "customer": customer, "machine": request, "perpetual": True,
@@ -454,6 +465,28 @@ def redeem_invitation(data):
     return record["document"].encode(), f'Parallax-{record["license_id"]}.parallax-license'
 
 
+def checkout_service():
+    # Keep purchase links independent of the short-lived owner-session identity.
+    # The existing release signing key is already a stable, backed-up secret.
+    raw = signing_key().private_bytes(serialization.Encoding.Raw, serialization.PrivateFormat.Raw, serialization.NoEncryption())
+    secret = hmac.digest(raw, b"parallax/purchase-links/v1", "sha256")
+    return payments.CheckoutService(record_store(), secret, issue_license, make_record, verify_document, local=local_mode())
+
+
+def sales_csv(rows):
+    output = io.StringIO(newline="")
+    keys = ("purchase_id", "customer", "email", "amount_cents", "currency", "paid_at", "referral",
+            "discount_code", "discount_cents", "order_id", "capture_id", "payer_id", "payer_email",
+            "payer_country", "paypal_fee_cents", "net_cents", "mode", "seats", "activated")
+    writer = csv.writer(output)
+    writer.writerow(keys)
+    for row in rows:
+        row = row | {"discount_code": row["price"]["discount_code"], "discount_cents": row["price"]["discount_cents"]}
+        values = [str(row.get(key, "")) if row.get(key) is not None else "" for key in keys]
+        writer.writerow(["'" + value if value.lstrip().startswith(("=", "+", "-", "@")) else value for value in values])
+    return ("\ufeff" + output.getvalue()).encode()
+
+
 class handler(BaseHTTPRequestHandler):
     def log_message(self, *_args):
         # Never log credentials, request codes, or customer data.
@@ -481,6 +514,9 @@ class handler(BaseHTTPRequestHandler):
             self.reply(503, {"error": str(error)})
 
     def do_POST(self):
+        if parse_qs(urlsplit(self.path).query).get("paypal_webhook") == ["1"]:
+            self.paypal_webhook()
+            return
         # Same-origin JSON requests only; cookies alone cannot authorize issuance.
         scheme = "http" if local_mode() else "https"
         expected_origin = f"{scheme}://{self.headers.get('Host', '')}"
@@ -500,6 +536,43 @@ class handler(BaseHTTPRequestHandler):
                 raise ValueError("Expected a JSON object.")
             encoded, secret = auth_settings()
             action = data.get("action")
+            if action == "checkout_config":
+                config = payments.settings(local_mode())
+                self.reply(200, {"ready": config["ready"], "mode": config["mode"],
+                                 "price": payments.quote({}), "seats": payments.SEATS})
+                return
+            if action == "checkout_quote":
+                self.reply(200, {"price": payments.quote(data)})
+                return
+            if action in {"checkout_create", "checkout_resume", "checkout_capture", "purchase_status", "purchase_redeem", "purchase_download", "purchase_recover"}:
+                service = checkout_service()
+                if action == "checkout_resume":
+                    cookie = SimpleCookie()
+                    try:
+                        cookie.load(self.headers.get("Cookie", ""))
+                        token = cookie["parallax_checkout" if local_mode() else "__Host-parallax_checkout"].value
+                    except (KeyError, CookieError):
+                        raise payments.CheckoutError(403, "Use the activation link in your email, or request it again.") from None
+                    purchase, _ = service.access(token)
+                    if purchase["purchase_id"] != data.get("purchase_id"):
+                        raise payments.CheckoutError(403, "Use your private activation link.")
+                    self.reply(200, {"token": token})
+                elif action in {"purchase_redeem", "purchase_download"}:
+                    document, filename = service.redeem(data) if action == "purchase_redeem" else service.download(data)
+                    self.reply(200, document, "application/octet-stream", {"Content-Disposition": f'attachment; filename="{filename}"'})
+                elif action == "purchase_recover":
+                    client = self.client_address[0] if local_mode() else self.headers.get("X-Vercel-Forwarded-For", "unknown").split(",")[0].strip()
+                    self.reply(200, service.recovery(data, client))
+                else:
+                    operation = {"checkout_create": service.create, "checkout_capture": service.capture, "purchase_status": service.status}[action]
+                    result = operation(data)
+                    headers = None
+                    if action == "checkout_create":
+                        cookie = "parallax_checkout" if local_mode() else "__Host-parallax_checkout"
+                        secure = "" if local_mode() else "; Secure"
+                        headers = {"Set-Cookie": f'{cookie}={result["token"]}; Path=/; HttpOnly; SameSite=Lax; Max-Age=3600{secure}'}
+                    self.reply(200, result, headers=headers)
+                return
             if action == "invite_status":
                 _, invitation, record = invitation_access(data.get("token"))
                 self.reply(200, {"status": "redeemed" if record else "ready"})
@@ -529,6 +602,20 @@ class handler(BaseHTTPRequestHandler):
                 return
             if action == "logout":
                 self.reply(200, {"authenticated": False}, headers={"Set-Cookie": session_cookie("", 0)})
+            elif action == "sales":
+                self.reply(200, {"sales": checkout_service().sales()})
+            elif action == "sales_export":
+                self.reply(200, sales_csv(checkout_service().sales()), "text/csv; charset=utf-8",
+                           {"Content-Disposition": 'attachment; filename="Parallax-sales.csv"'})
+            elif action in {"sale_link", "sale_resend"}:
+                service = checkout_service()
+                purchase_id = canonical_id(data.get("purchase_id"))
+                token = service.token(purchase_id)
+                purchase, _ = service.access(token, paid=True)
+                if action == "sale_link":
+                    self.reply(200, {"url": service.link(purchase_id)})
+                else:
+                    self.reply(200, service.recovery({"email": purchase["email"]}, owner=True))
             elif action == "invite_create":
                 self.reply(200, create_invitation(data))
             elif action == "invites":
@@ -570,6 +657,8 @@ class handler(BaseHTTPRequestHandler):
                 self.reply(400, {"error": "Unknown action."})
         except InvitationError as error:
             self.reply(error.status, {"error": str(error)})
+        except payments.CheckoutError as error:
+            self.reply(error.status, {"error": str(error)})
         except ConfigurationError as error:
             self.reply(503, {"error": str(error)})
         except StorageError as error:
@@ -578,3 +667,24 @@ class handler(BaseHTTPRequestHandler):
             self.reply(409, {"error": str(error)})
         except (ValueError, UnicodeError):
             self.reply(400, {"error": "Check the name, email address and complete request code."})
+
+    def paypal_webhook(self):
+        if self.headers.get_content_type() != "application/json":
+            self.reply(415, {"error": "Expected a JSON notification."})
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if not 0 < length <= 131072:
+                self.reply(413, {"error": "Invalid notification size."})
+                return
+            event = json.loads(self.rfile.read(length))
+            if not isinstance(event, dict):
+                raise ValueError()
+            result = checkout_service().webhook(event, {key.lower(): value for key, value in self.headers.items()})
+            self.reply(200, result)
+        except payments.CheckoutError as error:
+            self.reply(error.status, {"error": str(error)})
+        except (StorageError, ConfigurationError) as error:
+            self.reply(503, {"error": str(error)})
+        except (ValueError, UnicodeError):
+            self.reply(400, {"error": "Invalid payment notification."})

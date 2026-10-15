@@ -218,12 +218,91 @@
           "value": "no-referrer"
         }
       ]
+    },
+    {
+      "source": "/parallax/checkout/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
+      ]
+    },
+    {
+      "source": "/parallax/checkout/",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
+      ]
+    },
+    {
+      "source": "/parallax/activate/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
+      ]
+    },
+    {
+      "source": "/parallax/activate/",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
+      ]
+    },
+    {
+      "source": "/parallax/recover/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
+      ]
+    },
+    {
+      "source": "/parallax/recover/",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
+      ]
     }
   ],
   "functions": {
     "api/parallax.py": {
       "excludeFiles": "{public/**,downloads/**,assets/**,fonts/**,tests/**,scripts/**,docs/**,.private/**,.env*}",
-      "includeFiles": "parallax/release.json"
+      "includeFiles": "{parallax/release.json,server/**}",
+      "maxDuration": 60
     }
   },
   "redirects": [
@@ -241,6 +320,21 @@
       "source": "/parallax/unlock",
       "destination": "/parallax/unlock/",
       "permanent": true
+    },
+    {
+      "source": "/parallax/checkout",
+      "destination": "/parallax/checkout/",
+      "permanent": true
+    },
+    {
+      "source": "/parallax/activate",
+      "destination": "/parallax/activate/",
+      "permanent": true
+    },
+    {
+      "source": "/parallax/recover",
+      "destination": "/parallax/recover/",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -255,6 +349,18 @@
     {
       "source": "/parallax/unlock/",
       "destination": "/parallax/unlock/index.html"
+    },
+    {
+      "source": "/parallax/checkout/",
+      "destination": "/parallax/checkout/index.html"
+    },
+    {
+      "source": "/parallax/activate/",
+      "destination": "/parallax/activate/index.html"
+    },
+    {
+      "source": "/parallax/recover/",
+      "destination": "/parallax/recover/index.html"
     }
   ]
 }

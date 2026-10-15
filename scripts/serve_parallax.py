@@ -5,10 +5,12 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import importlib.util
 import json
 import os
+import sys
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 spec = importlib.util.spec_from_file_location("parallax", ROOT / "api/parallax.py")
 api = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(api)
@@ -40,11 +42,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_error(404)
 
     reply = api.handler.reply
+    paypal_webhook = api.handler.paypal_webhook
 
     def send_head(self):
         path = Path(unquote(urlsplit(self.path).path).lstrip("/"))
         if (any(part.startswith(".") or part == ".." for part in path.parts)
-                or (path.parts and path.parts[0] in {"api", "scripts", "tests", "docs"})
+                or (path.parts and path.parts[0] in {"api", "server", "scripts", "tests", "docs"})
                 or (path.name in {"requirements.txt", "vercel.json", "README.md"})
                 or (path.suffix == ".parallax-license")):
             self.send_error(404)
